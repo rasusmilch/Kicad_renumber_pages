@@ -3,9 +3,16 @@
 This file is historical decision/provenance evidence, **not** the authority for current intended behavior. See [REQUIREMENTS.md](REQUIREMENTS.md), [ROADMAP.md](ROADMAP.md), and [README.md](../README.md) for current direction. The decision status and provenance are separate; editing this file does not make the editor the decision maker.
 
 ## Current summary
-User-selected: build a maintainable KiCad hierarchical page renumbering utility with built-in checks, preserving the electrical design and parent-before-child-subtree ordering goal. User and ChatGPT make product and architecture decisions; Codex implements only approved tasks. Exact sibling order, interface, supported versions, and error/write policies remain **Open**.
+User-selected: build a maintainable KiCad hierarchical page renumbering utility with built-in checks and preserve the electrical design. Round 1 now selects natural name-sorted depth-first parent-first numbering, a continuous sequence from root page 1 including instantiated empty sheets, and complete-project scope. User and ChatGPT make product and architecture decisions; Codex implements approved tasks. Interface, multi-top-level handling, supported versions, and error/write policies remain **Open**.
 
 ## History
+
+### 2026-11-10 — Round 1 numbering behavior approved
+- **Status:** current
+- **Provenance:** explicit user selections in the project's Round 1 interview. The secondary comparison details are ChatGPT engineering adjudication consistent with those selections, not an additional explicit user selection.
+- **Decision:** natural alphabetical and numeric-aware sibling ordering at all hierarchy levels; depth-first, parent-first traversal; continuous page numbers beginning with root=1; include instantiated empty sheets; whole-project operation only. Case-insensitive numeric-aware normalization and deterministic tie-breaking are the specified implementation comparison behavior, without treating old page numbers or positions as sort inputs.
+- **Authority:** [REQUIREMENTS.md](REQUIREMENTS.md).
+- **Open boundary:** project selection, multiple top-level sheets, file-write safety, and the verification contract remain to be adjudicated.
 
 ### 2026-11-09 — Hierarchical numbering goal
 - **Status:** current
