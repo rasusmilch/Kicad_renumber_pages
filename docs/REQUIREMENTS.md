@@ -39,7 +39,7 @@ The user wants **correct parent-first renumbering** with **built-in safeguards**
 - **Minimal recovery:** prefer verified backups, staged temporary replacements, and best-effort automatic rollback when a detectable write error occurs. Because multi-file writes are not intrinsically atomic, provide a simple interruption indicator and clear recovery guidance; never claim guaranteed automatic recovery after power loss. A complex transaction journal, automatic cross-process resumption, or a database is **not selected**. Additional recovery machinery requires evidence that the simpler approach cannot meet this requirement.
 - **Already correct:** if the numbering plan yields no changes, report a no-op; create no backups, rewrite no files, and avoid incidental timestamp changes.
 
-The following are **engineering recommendations awaiting adjudication**, not approved implementation policy: structured KiCad S-expression parsing and exact semantic-preservation verification using netlist or equivalent checks.
+**Approved technical architecture and format contract:** see [ARCHITECTURE.md](ARCHITECTURE.md). Use structured lossless KiCad S-expression parsing, byte-span-only page edits, the approved source/backup/restore sequence, and whole-graph verification. These are ChatGPT's post-planning engineering adjudications of implementation mechanisms, not independent user-specified functionality. KiCad 10 installation-based validation remains required before a production-use claim.
 
 ## Protected properties to specify before execution
 A safe design should establish a precise allowable-change set and detect violations. Candidate protected properties include schematic sheet UUIDs, instance UUID paths, source file associations, component references, symbol/net connectivity, all non-page-number S-expressions, and KiCad readability. The **exact validation contract and what constitutes an acceptable KiCad automatic rewrite are Open**.
@@ -47,9 +47,9 @@ A safe design should establish a precise allowable-change set and detect violati
 Do not silently treat editing a shared source sheet as a single instance; each instance may have independently stored page information.
 
 ## Open product decisions — user/ChatGPT adjudication required
-- **Write implementation detail:** exact permitted page-value edit locations, staged-commit and interrupted-run marker mechanics, robust restoration proof and how conflicts are surfaced. Round 3 selects safety outcomes, not an unreviewed persistence design.
-- **Compatibility:** exact Python and KiCad version baseline, dependency policy, and platform-specific behavior for Kubuntu/Windows.
-- **Error policy:** invalid or duplicate UUIDs, unresolved sheet references, hierarchy cycles, shared-file ambiguity, broken page mappings, malformed or newer schematic syntax, unexpected instance coverage, and conflicts with external changes.
+- **Write implementation detail:** defined in [ARCHITECTURE.md](ARCHITECTURE.md) as targeted page-value spans, staged replacements and simple interrupted-operation marker; more elaborate recovery behavior is not approved.
+- **Compatibility evidence:** MVP targets observed KiCad 10 format 20260306 and Python 3.11+ with standard-library runtime. Kubuntu/Windows support must be tested rather than assumed; unsupported format/migration cases fail without writing.
+- **Error policy:** strict fail-closed rules and tolerated repairable page values are selected in [ARCHITECTURE.md](ARCHITECTURE.md). Unsupported or ambiguous source must not be modified.
 - **Verification:** pre/post comparisons, KiCad CLI availability, exported netlist equivalence, ERC relevance, fixtures, and how to establish that a page change did not alter circuit behavior.
 - **PDF/export integration:** separately deferred until requested and adjudicated.
 

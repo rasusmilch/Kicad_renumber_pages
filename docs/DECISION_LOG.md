@@ -7,6 +7,14 @@ User-selected: build a maintainable KiCad hierarchical page renumbering utility 
 
 ## History
 
+### 2026-11-10 — Post-planning format evidence and MVP implementation architecture
+- **Status:** current
+- **Provenance:** ChatGPT engineering review/adjudication of Codex's read-only plan, user-approved Round 1–3 behavior, current KiCad 10 AFC evidence, and published KiCad source/format evidence.
+- **Decision:** implement a Python 3.11+ standalone CLI with a lossless S-expression page-span parser, instance-path-based multi-root DFS numbering, source verification, backup of each changed file, per-file staged replacement, minimal interruption marker, and conservative rollback. Keep foreign-project records unchanged. Repair valid old page-value strings, but reject ambiguous/missing page records. Reject external references/aliased source files for the MVP rather than copying or mutating unexpected paths.
+- **Architecture authority:** [ARCHITECTURE.md](ARCHITECTURE.md).
+- **Limits:** these are engineering mechanism adjudications, not claims of completed implementation or KiCad 10 test execution. The read-only preview implementation precedes separately reviewed write capability.
+
+
 ### 2026-11-10 — Multiple top-level sheets and Round 3 safety
 - **Status:** current
 - **Provenance:** explicit user revision of Round 2 and answers to Round 3; ChatGPT engineering adjudication of multi-root ordering and proportional recovery.

@@ -8,7 +8,7 @@ Develop a safe, repeatable way to renumber KiCad hierarchical schematic **sheet 
 
 The user also wants **built-in checks**. A successful implementation must not silently corrupt a KiCad project or change the circuit while editing page numbering. The complete behavior, ordering policy, supported environments, and implementation architecture require a separate explicit design adjudication.
 
-**Current authorization:** establish project governance; investigate and plan the program read-only. **Not authorized:** implement a renumberer, mutate a user PCB/schematic, or infer unresolved behaviors.
+**Current authorization:** reviewed design supports a focused Codex implementation task for the read-only preview engine, followed by an independently reviewed apply/backup phase. There is still **no application code** and no authorization to mutate any user schematic.
 
 ## Decision ownership
 
@@ -18,6 +18,7 @@ The user supplies intended operation, constraints, and approvals. ChatGPT inspec
 
 - [`AGENTS.md`](AGENTS.md) — required Codex operating contract and authority router.
 - [`docs/REQUIREMENTS.md`](docs/REQUIREMENTS.md) — current selected intent, safety boundaries, and open product decisions.
+- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — approved KiCad 10 instance model, parser/traversal, and limited recovery architecture.
 - [`docs/ROADMAP.md`](docs/ROADMAP.md) — current stage and conditional next phases.
 - [`docs/TESTING_STRATEGY.md`](docs/TESTING_STRATEGY.md) — validation expectations and evidence limits; no passing tests are claimed.
 - [`docs/DECISION_LOG.md`](docs/DECISION_LOG.md) — historical decision provenance and pending recommendations; current authority remains in the documents above.

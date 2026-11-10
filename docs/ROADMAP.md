@@ -1,17 +1,17 @@
 # Current project roadmap
 
-**Stage: governance/bootstrap and behavior adjudication.** No executable program exists and no feature implementation is authorized.
+**Stage: planning reviewed; initial read-only implementation ready for an explicit Codex execute task.** No program exists yet. The safety-critical apply phase remains separately gated.
 
 ## 0 — Governance foundation
 Record current intent, decision ownership, authority routes, commands (including verified absences), development safety constraints, provenance, and the difference between Selected, Open, and proposed requirements. This stage does not implement product behavior.
 
-## 1 — Read-only discovery and design
-The next substantive Codex task should be a **read-only plan** only after ChatGPT specifies its investigative questions. The plan should inspect real KiCad 10 sheet-instance encoding and reuse behavior, analyze failure cases, compare simple architectural alternatives, and propose behavior tests. It must clearly return unresolved product decisions for user/ChatGPT adjudication rather than silently selecting them.
+## 1 — Read-only discovery and design (completed with qualified review)
+Codex completed a read-only plan, but its local environment contained KiCad 9 and an older governance snapshot. ChatGPT independently inspected current KiCad 10 schematic and project evidence, including a public upstream multi-root/shared-subsheet regression fixture. The approved MVP architecture and remaining validation boundary are specified in [ARCHITECTURE.md](ARCHITECTURE.md).
 
-ChatGPT and the user then explicitly approve a behavior specification and architecture. No execute task before that approval.
+A refreshed prepared checkout containing the latest current-state authority is required for execute work. A historical planning receipt is evidence, not approval to invent behavior.
 
-## 2 — MVP (conditional on approved design)
-A focused minimal implementation of the approved renumberer, with the selected safety and preview/apply behavior. Follow semantic task boundaries, not an arbitrary number of files or prompts. No PDF generation or other workflow expansion.
+## 2 — MVP (approved design; implementation pending)
+First implement and test the **read-only** parser, root/sheet instance graph, deterministic numbering plan, and terminal preview. Review the receipt and source. Then implement **apply** with mandatory verified timestamped backups, minimal interruption detection, rollback limits, and failure-injection tests. Follow semantic task boundaries, not an arbitrary number of files or prompts. No PDF generation or other workflow expansion.
 
 ## 3 — Stabilization
 Adversarial validation of nested/reused sheet instances, malformed/unsupported input, consistency guards, accidental-write prevention, deterministic outputs, and failure recovery as required by the subsequently approved validation contract. Repair discovered flaws through focused work.

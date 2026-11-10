@@ -1,6 +1,6 @@
 # Validation strategy
 
-**Current evidence:** governance-only repository; no program, tests, test runner, CI, or KiCad-dependent validation commands exist or have been run. The following is a **planning-level safety test strategy**, not a claim of passing tests or an independently selected implementation architecture.
+**Current evidence:** governance-only repository; no program, tests, test runner, CI, or KiCad-dependent validation commands exist or have been run. The requirements and architecture now select a testable design, but this document does **not** claim tests have passed or that KiCad 10 has been run.
 
 ## Risk to establish confidence against
 Renumbering must not change circuit semantics, misnumber shared/repeated instances, silently skip sheets, partially write files, or claim safety when unsupported syntax or an ambiguous hierarchy prevents confidence.
@@ -27,3 +27,8 @@ Tests should use synthetic fixture projects plus a carefully vetted real-world f
 **Test runner:** not installed or configured in this repository, and no tests yet exist.
 **KiCad CLI or GUI check:** not established or executed.
 **Useful future candidates (unverified):** `pytest`, `python -m compileall`, `git diff --check`, `kicad-cli sch export netlist`, and schematic/PDF readback. Exact invocation and availability must be established with the chosen environment and implementation. Do not assume a particular KiCad CLI output proves connectivity equivalence.
+
+## Evidence gap and approved fixtures (2026-11-10)
+- Codex's planning environment had KiCad 9.0.2 and Python 3.12.14, with no KiCad 10 runner. KiCad 9 cannot validate KiCad 10 imports/exports.
+- ChatGPT independently inspected a current KiCad 10 hierarchical schematic project and upstream KiCad 10 documentation. Use the [KiCad upstream issue23403 regression fixture](https://gitlab.com/kicad/code/kicad/-/tree/10.0.6/qa/data/eeschema/issue23403) as public reference for multiple roots sharing a subsheet; build minimal original synthetic test fixtures locally, without copying proprietary customer material.
+- Independent format evidence and safety boundary are in [ARCHITECTURE.md](ARCHITECTURE.md). Fixture structure tests must prove parent instance-path lookup, multi-root numbering, reused child file expansion and exact allowed byte changes. Real KiCad 10 GUI/CLI integration remains **unverified** until run on a KiCad 10 installation.

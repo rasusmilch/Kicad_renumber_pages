@@ -4,4 +4,4 @@ Canonical project-change history for material user-facing and maintainability ef
 
 ## Unreleased
 
-- Established governance for a planned KiCad hierarchical schematic page-renumbering utility, including explicit user/ChatGPT architectural authority, Codex implementation boundaries, selected intent, Open design decisions, and validation expectations. No executable renumberer exists.
+- Established governance and selected a KiCad 10 multi-root, instance-aware page-renumbering design with conservative file-preservation, backup/recovery and validation boundaries. No executable renumberer exists.

@@ -1,0 +1,62 @@
+# KiCad 10 renumberer: approved MVP architecture and format evidence
+
+**Status:** ChatGPT engineering adjudication following the user's Round 1–3 decisions and Codex's read-only planning receipt (2026-11-10). No implementation or tests exist at this writing. This document is current architecture authority; receipt/inspection details below are evidence, not execution claims.
+
+## Scope and operation
+
+- Standalone Python **3.11+**, standard library for runtime; `pytest` permitted as a development dependency. A single explicit `.kicad_pro` input path, terminal-only output, preview by default, explicit `--apply` for edits.
+- Target **KiCad 10** native schematic format, initially verified `(version 20260306)` and `(generator_version "10.0")`. Accept additional schema encodings only when independently verified and approved. **Do not** make KiCad itself a runtime dependency for read-only plan or controlled targeted edits.
+- A read-only project snapshot, one instance graph, and one numbering-plan function serve preview and apply. Apply reloads and verifies inputs and recomputes the same plan. A page-change-free operation is a true filesystem no-op.
+- The `.kicad_pro` is read only. Do not mutate non-page-number schematic content. PDF generation, GUI/plugin front ends, subtree-only edits, or reannotation are outside the MVP.
+- No database, service, persistent configuration format, generic transaction framework, or duplicate identity system.
+
+## Observed KiCad 10 encoding
+
+Inspected against a current real KiCad 10 project and confirmed with upstream format/source evidence. Use public KiCad upstream fixtures for committed tests; **do not include customer AFC files in this public repository**.
+
+- Project root registry: `schematic.top_level_sheets` is an array of objects with `filename`, `name`, and `uuid`; **not** the project's separate `sheets` UUID/name array. Each entry identifies one actual top-level sheet, loaded relative to the project directory. KiCad 10 permits multiple roots.
+- Each top-level `.kicad_sch` has its own document UUID and `(sheet_instances (path "/" (page "…")))` record for its root page.
+- A child sheet is an explicit `(sheet …)` expression in its **parent** source file, carrying `(uuid "…")`, `(property "Sheetname" "…")`, `(property "Sheetfile" "…")`, and `(instances (project "<project-stem>" (path "<parent-instance-path>" (page "…"))))`.
+- The child page record's path is the **parent** instance UUID path; the full child identity is that parent path **plus the sheet-symbol UUID**. Never match the child record to the child document filename or mistakenly require the stored path to include its own symbol UUID.
+- Reused schematic files contain multiple parent-path entries for their child sheet symbols. A file is parsed once, but its sheet symbols are expanded for every distinct reachable parent instance. Across multiple top-level sheets, the corresponding paths begin with each actual top-level document UUID, not an invented virtual-root UUID.
+- A `project` instance group may contain information for a different project. Select only the exact target project group; preserve foreign-project bytes and do not infer ownership from an unrelated `sheets` map.
+- For a supported project, require a non-empty unambiguous root registry; reject missing referenced files, mismatched root UUIDs, same root listed repeatedly, and ambiguous graph/instance records. KiCad's GUI may perform template-migration/fallback repairs; this utility deliberately does **not** silently perform those repairs.
+- Root page numbers and child page numbers are **strings** in KiCad's format. Existing duplicate, gapped, or nonnumeric *values* are repairable; missing or ambiguous page *records* are not. Fail on malformed structural records instead of inventing a record or silently discarding it.
+
+Evidence:
+- [KiCad schematic S-expression format](https://dev-docs.kicad.org/en/file-formats/sexpr-schematic/) — hierarchy instance paths, per-project sheet instances, and page properties.
+- [KiCad 10 Schematic Editor manual](https://docs.kicad.org/10.0/en/eeschema/eeschema.html) — multiple top-level sheets and shared hierarchical files.
+- [KiCad 10 source: project top-level sheet structure](https://gitlab.com/kicad/code/kicad/-/blob/10.0.0/include/project/project_file.h).
+- [KiCad 10 upstream regression fixture](https://gitlab.com/kicad/code/kicad/-/tree/10.0.6/qa/data/eeschema/issue23403) — two top-level sheets sharing one subsheet (test issue #23403).
+- [KiCad 10 project loader](https://github.com/KiCad/kicad-source-mirror/blob/master/eeschema/files-io.cpp) — loads each registered top-level sheet.
+- A current private AFC project's `.kicad_pro`, root `.kicad_sch`, and repeated-channel `.kicad_sch` were inspected by ChatGPT on 2026-11-10. Their real UUIDs, source content, and customer design are not fixtures for this public repository.
+
+These establish representative field locations but **do not establish** that a complete multi-root renumbering has been tested on an installed KiCad 10 application.
+
+## Ordered instance traversal
+
+1. Load and validate the explicit project JSON, without changing it. Identify each root by its registered filename, name and UUID; validate them against the referenced document.
+2. Parse each reachable source file with a structured, lossless, quoted-string-aware S-expression parser retaining exact byte ranges. Reject malformed/unsupported inputs and ambiguous paths. Do not use global regex substitutions.
+3. Expand instance graph with root and parent-path identities; detect include cycles on active ancestry, without treating legitimate reuse elsewhere as a cycle.
+4. Order **all** roots and each set of child sheet instances by the same natural case-folded alphabetical comparison, treating ASCII digit runs numerically, then original display name and instance UUID path as deterministic tie-breakers. Do not use physical position or old page numbers.
+5. Depth-first pre-order traversal of the whole *forest*; number actual first top-level sheet 1, then every nested sheet, continuing across later roots. Include empty instantiated sheets; exclude unreferenced source files. No synthetic root.
+6. Select the sole page token for each reachable instance and calculate required replacement as a canonical decimal string. Build immutable per-file edits with non-overlapping byte spans. Preview prints full path/name, old/new page, change status, affected files, and diagnostics.
+7. Reparse candidate bytes and verify the exact planned instance coverage/order and only page-string-span differences. All other bytes must be identical to input. Repeating the tool after successful apply must be a no-op.
+
+For current-project records that cannot be unambiguously related to the reachable instance graph, fail closed. Extra foreign-project instance records may remain unchanged when ownership is unambiguous. No automatic orphan cleanup or project migration.
+
+## Apply and recovery boundary
+
+- Apply requires the user to have closed the KiCad Schematic Editor. Reject detectable KiCad schematic/editor lock indicators or another active utility operation. A missing indicator is not proof the editor is closed; warn accordingly.
+- Compute and validate all candidate files **before** the first original modification. Snapshot/hash the `.kicad_pro` and all reachable source files so changes are detected; no portable absolute guarantee against a noncooperating writer racing the final check is claimed.
+- If a change is needed, exclusively create `<project>/backup-renumber/YYYY-MM-DD_HH-MM-SS/` (collision resolved by a unique suffix) and back up every file **that will be modified**, preserving relative paths. Verify all backups by reading the saved bytes before any replacement. No backup-disable option. The original project file is not modified or required to be redundantly backed up.
+- Stage verified complete target files next to their originals and replace one file at a time via same-filesystem atomic file replacement, with flush/sync where supported. Preserve file modes and ordinary metadata where practicable. Recheck input snapshots immediately before each replace. This is **not** an atomic cross-file transaction.
+- Minimal operation marker: create an exclusive indicator under `backup-renumber/` that identifies the timestamp backup and affected-file before/after digests; persist it before replacement. This is sufficient to block overlapping utility runs and flag interrupted partial operations, **not** permission to build a database or full journal. When a detected failure occurs, stop forward writes and restore only files still matching the operation's expected outputs; verify restoration. Never overwrite a third-party change during rollback.
+- After a crash, leave backups and marker; future apply refuses and prints manual recovery instructions. Do not automatically resume or delete evidence. Restore originals on a controlled copy as needed, verify, then clear the marker only by an explicit documented manual process.
+- A no-change plan creates no backup/marker, rewrites no files, and does not change mtimes.
+- MVP write safety supports regular project-contained files on local filesystems. Reject outside-project references, symlinks, hardlinks detectable as aliased files, overlapping/duplicate physical files, and ambiguous path normalization. Network shares and unconventional filesystem semantics are not validated; do not claim universal crash durability.
+- Cross-platform intended for Kubuntu and Windows; platform compatibility is **a validation goal**, not evidence of tests run.
+
+## Independent validation gate
+
+Codex may run normal Python and `pytest` tests in its local environment, but KiCad 9 cannot substantiate KiCad 10 load or export. The first implementation task may establish the read-only parser, graph, plan, preview and fixtures. Apply must not be treated as ready until a separate task and error-injection tests are reviewed. Before live-project use, confirm with installed KiCad 10 on disposable test projects, including the upstream multi-root/shared-child pattern and a complex nested/reused example. Full source-byte preservation and instance-graph tests are essential; netlist comparisons are corroboration where supported, not a substitute for file-level safety.

@@ -3,10 +3,11 @@
 ## Read first
 1. [README.md](README.md) — purpose, status, and navigation.
 2. [docs/REQUIREMENTS.md](docs/REQUIREMENTS.md) — selected user requirements and unresolved product decisions.
-3. [docs/ROADMAP.md](docs/ROADMAP.md) — currently authorized stage and sequencing.
-4. [docs/TESTING_STRATEGY.md](docs/TESTING_STRATEGY.md) — applicable validation expectations and actual command status.
-5. [docs/DECISION_LOG.md](docs/DECISION_LOG.md) — historical provenance (not substitute current authority).
-6. [CHANGELOG.md](CHANGELOG.md) — canonical merge-facing project-change history.
+3. [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — approved KiCad 10 encoding, instance model and file-update boundaries.
+4. [docs/ROADMAP.md](docs/ROADMAP.md) — currently authorized stage and sequencing.
+5. [docs/TESTING_STRATEGY.md](docs/TESTING_STRATEGY.md) — applicable validation expectations and actual command status.
+6. [docs/DECISION_LOG.md](docs/DECISION_LOG.md) — historical provenance (not substitute current authority).
+7. [CHANGELOG.md](CHANGELOG.md) — canonical merge-facing project-change history.
 For substantial workflow questions consult the user's `rasusmilch/Codex_guide`, particularly `04-core-operating-rules.md`, `05-current-source-inspection-rule-for-all-prompts.md`, `09-one-draft-pr--multi-subtask-workflow.md`, `47-v4-project-bootstrap-workflow.md`, `48-v4-agents-and-anchor-contracts.md`, and `49-v4-compact-receipt-contracts.md`. The external guide is reference, not a required network dependency for local execution.
 
 ## Authority and decision rights
@@ -17,7 +18,7 @@ For substantial workflow questions consult the user's `rasusmilch/Codex_guide`, 
 - Material unresolved behavior is **Open**, not tacit permission. Stop and seek ChatGPT/user adjudication instead of guessing. A plan or receipt is a claim, not authority.
 
 ## Work stages and scope
-- The repository currently contains governance only. **No implementation is authorized** without a subsequently approved task and its prerequisite read-only plan.
+- The repository currently contains governance only. A read-only planning investigation was independently reviewed and the [architecture](docs/ARCHITECTURE.md) adjudicated. **Only** an explicitly assigned focused Codex execution task may implement a named phase; no user-project mutation is authorized by governance alone.
 - For nontrivial work use **Plan (read-only) → Review / explicit user-and-ChatGPT adjudication → focused Execute → Validate → independent review**. One feature/fix workstream, ordinarily one draft PR, and independent semantic subtasks when warranted. Codex uses only its prepared local checkout; it must not fetch/pull/push, query GitHub, or perform hosted PR/merge operations.
 - The user and ChatGPT own hosted review and merge closure. Codex may durably preserve completed validated local changes with a local commit; this does **not** establish approval or merge readiness. If a durable handoff fails, retain the working tree and report it; never discard validated work to hide a failure.
 - Do not introduce PDF output, GUI/plugin integration, project conversion, KiCad project mutations, new compatibility promises, or unrelated automation merely because they appear convenient. Compare new mechanisms with the simplest viable approved design before adding new persistent concepts.
@@ -43,6 +44,6 @@ For substantial workflow questions consult the user's `rasusmilch/Codex_guide`, 
 - When implementation arrives, inspect the actual files/environment before recording any command as supported; explicitly state unavailable, unknown, unverified, or not applicable evidence.
 
 ## Safety and stop conditions
-- Never rewrite KiCad sheet UUIDs, connections, or symbol contents as incidental formatting. The exact permitted mutations, traversal, sorting, integrity checks, write mode, and verification protocol are **Open** until explicitly selected in `docs/REQUIREMENTS.md`.
+- Never rewrite KiCad sheet UUIDs, connections, or symbol contents as incidental formatting. The approved traversal, parsing and allowed page-only changes are owned by [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). Stop when evidence would require a material departure from this architecture; do not invent the departure.
 - Refuse to guess at shared-file instance behavior, cycles, missing pages, malformed source, or path ambiguity. Report choices and their tradeoffs to ChatGPT/user.
 - If current authority becomes contradictory, materially incomplete, or untrustworthy, route to governance reconciliation / stop-and-replan rather than implementing from assumptions.
