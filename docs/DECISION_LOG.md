@@ -27,7 +27,7 @@ User-selected: build a maintainable KiCad hierarchical page renumbering utility 
 - **Authority:** pending user/ChatGPT adjudication under [REQUIREMENTS.md](REQUIREMENTS.md). No implementation is authorized by this entry.
 
 ### 2026-11-09 — PDF export as separate workstream
-- **Status:** current scope boundary
+- **Status:** current
 - **Provenance:** user requested a renumberer and separately discussed unwieldy KiCad PDFs; ChatGPT recommended separating PDF publication from the numbering MVP.
 - **Decision:** no PDF implementation is authorized by the current renumbering scope. Any later addition requires explicit selection.
 - **Authority:** [REQUIREMENTS.md](REQUIREMENTS.md).
