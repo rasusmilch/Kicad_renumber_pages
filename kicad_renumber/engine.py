@@ -393,8 +393,8 @@ def candidate_bytes(plan: NumberingPlan) -> tuple[tuple[Path, bytes], ...]:
     return tuple(result)
 
 
-def build_plan(project_path: str | Path) -> NumberingPlan:
-    """Analyze a supported project and verify its proposed page-only edits."""
+def project_file_path(project_path: str | Path) -> Path:
+    """Resolve the explicit entry point without accepting symlink components."""
     supplied_path = Path(project_path)
     if not supplied_path.is_absolute():
         supplied_path = Path.cwd() / supplied_path
@@ -402,6 +402,12 @@ def build_plan(project_path: str | Path) -> NumberingPlan:
     project = Path(os.path.abspath(supplied_path))
     if project.suffix != ".kicad_pro":
         raise InvalidProject("an explicit .kicad_pro path is required")
+    return project
+
+
+def build_plan(project_path: str | Path) -> NumberingPlan:
+    """Analyze a supported project and verify its proposed page-only edits."""
+    project = project_file_path(project_path)
     plan = _discover(project)
     candidates = dict(candidate_bytes(plan))
     supplied = {s.path: replace(s, data=candidates.get(s.path, s.data)) for s in plan.snapshots}

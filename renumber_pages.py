@@ -1,4 +1,4 @@
-"""Read-only launcher; suppress import caches as well as project writes."""
+"""CLI launcher; suppress incidental import caches in both operating modes."""
 
 import sys
 

@@ -1,1 +1,1 @@
-"""KiCad 10 instance-aware, read-only page-number planning."""
+"""KiCad 10 instance-aware page planning and explicit controlled application."""

@@ -214,9 +214,6 @@ class PreviewTests(unittest.TestCase):
         self.assertEqual(first.stdout, second.stdout)
         self.assertEqual(first.stdout.count("Instance:"), 6)
         self.assertIn("6 sheets, 6 page changes, 3 affected files", first.stdout)
-        rejected = self.run_cli(self.project, "--apply")
-        self.assertEqual(rejected.returncode, 2)
-        self.assertIn("unsupported operation", rejected.stderr)
         self.assertEqual(inventory(self.base), before)
 
     def test_drawing_objects_do_not_hide_unknown_document_syntax(self):
@@ -577,12 +574,12 @@ class PreviewTests(unittest.TestCase):
         self.assertEqual(inventory(self.base), before)
         self.assertEqual(inventory(package), package_before)
 
-    def test_apply_rejected_without_reading_or_writing(self):
-        self.single()
+    def test_invalid_apply_rejected_without_writing(self):
+        self.single(None)
         before = inventory(self.base)
         result = self.run_cli(self.project, "--apply")
         self.assertEqual(result.returncode, 2)
-        self.assertIn("unsupported operation", result.stderr)
+        self.assertIn("Invalid or unsupported project", result.stderr)
         self.assertEqual(result.stdout, "")
         self.assertEqual(inventory(self.base), before)
 
