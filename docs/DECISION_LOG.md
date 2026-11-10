@@ -3,9 +3,18 @@
 This file is historical decision/provenance evidence, **not** the authority for current intended behavior. See [REQUIREMENTS.md](REQUIREMENTS.md), [ROADMAP.md](ROADMAP.md), and [README.md](../README.md) for current direction. The decision status and provenance are separate; editing this file does not make the editor the decision maker.
 
 ## Current summary
-User-selected: build a maintainable KiCad hierarchical page renumbering utility with built-in checks and preserve the electrical design. Round 1 now selects natural name-sorted depth-first parent-first numbering, a continuous sequence from root page 1 including instantiated empty sheets, and complete-project scope. User and ChatGPT make product and architecture decisions; Codex implements approved tasks. Interface, multi-top-level handling, supported versions, and error/write policies remain **Open**.
+User-selected: build a maintainable KiCad hierarchical page renumbering utility with built-in checks and preserve the electrical design. Round 1 selects natural name-sorted depth-first parent-first numbering, continuous root-first pages including instantiated empty sheets, and complete-project scope. Round 2 selects an explicit .kicad_pro entry point, one root only, standalone Python CLI, default read-only preview with explicit --apply, and terminal-only reporting. User and ChatGPT make product and architecture decisions; Codex implements approved tasks. Supported version baselines, file-write/recovery rules, and detailed verification remain **Open**.
 
 ## History
+
+### 2026-11-10 — Round 2 architecture and operator workflow approved
+- **Status:** current
+- **Provenance:** explicit user selections in Round 2, with ChatGPT engineering adjudication of root discovery, preview/apply planner consistency, and unsupported-state behavior.
+- **Decision:** standalone Python CLI; explicitly supplied `.kicad_pro` entry point; reject multi-root/ambiguous-root projects in the MVP; read-only preview by default and opt-in `--apply`; only human-readable terminal reporting.
+- **Implementation constraints:** use one plan-calculation implementation for preview/apply; reload source on apply; do not modify the `.kicad_pro`; fail closed for root ambiguity; no database, config, or machine-readable reports in the MVP. Exact parsing and persistence mechanisms are still Open.
+- **Authority:** [REQUIREMENTS.md](REQUIREMENTS.md).
+- **Still Open:** file-modification safety, crash recovery, platform/version support, and validation contract.
+
 
 ### 2026-11-10 — Round 1 numbering behavior approved
 - **Status:** current
@@ -30,8 +39,9 @@ User-selected: build a maintainable KiCad hierarchical page renumbering utility 
 ### 2026-11-09 — Initial implementation form and safety mechanisms
 - **Status:** proposal
 - **Provenance:** prior ChatGPT engineering recommendation, **not confirmed by user**.
-- **Proposal:** standalone Python command-line program, parsed S-expression editing, dry-run, explicit apply, backups/rollback, and semantic verification; optional reuse across projects.
-- **Authority:** pending user/ChatGPT adjudication under [REQUIREMENTS.md](REQUIREMENTS.md). No implementation is authorized by this entry.
+- **Original proposal:** standalone Python command-line program, parsed S-expression editing, dry-run, explicit apply, backups/rollback, and semantic verification; optional reuse across projects.
+- **Later decision:** user selected the standalone CLI and preview/apply boundary in Round 2. A structured parser, backups/rollback and semantic checks remain unselected proposals.
+- **Authority:** [REQUIREMENTS.md](REQUIREMENTS.md). This history is not implementation authorization.
 
 ### 2026-11-09 — PDF export as separate workstream
 - **Status:** current

@@ -21,9 +21,18 @@ The user wants **correct parent-first renumbering** with **built-in safeguards**
 - **Page assignment:** root schematic is page `1`, then consecutively assign `2..N` without gaps or preserving old assignments. Empty but instantiated sheets count as pages.
 - **Traversal:** depth-first pre-order; process each entire descendant subtree before the next sibling subtree.
 - **Scope:** renumber the complete hierarchy of the selected project, not an individual subtree. Ignore unreferenced `.kicad_sch` files outside the hierarchy; fail rather than quietly omit missing required referenced files. Shared source sheets are represented by each distinct instance path, not by source filename.
-- **Still Open:** how the project is selected, treatment of KiCad 10 multi-top-level projects, and the precise error/write/integrity guarantees. These must not be inferred from the selected sorting policy.
+- **Still Open:** the precise error/write/integrity guarantees and KiCad/Python version baselines. These must not be inferred from the selected sorting policy.
 
-The following are **engineering recommendations awaiting final design adjudication**, not unconditionally selected requirements: standalone Python CLI over an in-editor plugin; use of a structured KiCad S-expression parser; a read-only preview/dry-run and explicit application; transactional updates and recoverable backups; XML/netlist comparison or equivalent semantic verification.
+## Selected architecture and workflow — Round 2 (2026-11-10)
+- **Interface:** standalone Python command-line utility, without KiCad GUI/plugin integration for the MVP.
+- **Project entry point:** require the user to supply a specific existing `.kicad_pro` file. Read the project's schematic metadata to identify the schematic; do not search the directory and choose a root by guesswork. This project file is read-only for page renumbering.
+- **Root admissibility:** accept exactly one positively identified top-level schematic root. KiCad 10 supports multiple independent top-level sheets; projects declaring multiple roots are valid KiCad projects but **unsupported by this MVP**. Missing, conflicting, or ambiguous metadata also blocks mutation rather than triggering silent selection. Actual version-specific encoding remains for the read-only plan to confirm.
+- **Execution:** the default command only discovers, validates, calculates, and prints a proposed numbering plan; it performs no writes. Only an explicit `--apply` can authorize writes, subject to the separate safety policy still to be selected.
+- **Plan reuse:** preview and apply use one deterministic numbering-plan computation. Apply re-reads and validates the current source; apply must not act on a stale in-memory result. Controls for source changes between separate preview and apply invocations remain Round 3.
+- **Reporting:** human-readable terminal output showing project/root, complete intended ordering, old-to-new page numbers, affected files, change/no-op summary, and actionable diagnostic errors. No JSON, CSV, or additional persistent reporting format for MVP.
+- **Portability direction:** intended for Kubuntu and Windows; exact Python/KiCad version support and platform-specific validations remain Round 4.
+
+The following are **engineering recommendations awaiting adjudication**, not approved implementation policy: structured KiCad S-expression parsing, transactional updates, recoverable backups, and semantic preservation verification using netlist or equivalent checks.
 
 ## Protected properties to specify before execution
 A safe design should establish a precise allowable-change set and detect violations. Candidate protected properties include schematic sheet UUIDs, instance UUID paths, source file associations, component references, symbol/net connectivity, all non-page-number S-expressions, and KiCad readability. The **exact validation contract and what constitutes an acceptable KiCad automatic rewrite are Open**.
@@ -31,9 +40,8 @@ A safe design should establish a precise allowable-change set and detect violati
 Do not silently treat editing a shared source sheet as a single instance; each instance may have independently stored page information.
 
 ## Open product decisions — user/ChatGPT adjudication required
-- **Project selection / multi-top-level case:** what path identifies the selected project and how KiCad 10 projects with independent top-level schematic sheets are admitted or rejected.
-- **Interface:** standalone CLI, plugin, GUI, or combination; supported Python and KiCad versions; portability requirements and dependency policy.
-- **Preview and write authorization:** behavior of dry-run, explicit apply, files allowed to change, protection of unsaved editor sessions, backups, atomicity, failure rollback, and handling an already clean project.
+- **Write protection and preview/apply integrity:** files allowed to change, detection of unsaved editor sessions, source changes after preview, backup/restore requirements, atomicity limits, failure recovery, and handling an already clean project.
+- **Compatibility:** exact Python and KiCad version baseline, dependency policy, and platform-specific behavior for Kubuntu/Windows.
 - **Error policy:** invalid or duplicate UUIDs, unresolved sheet references, hierarchy cycles, shared-file ambiguity, broken page mappings, malformed or newer schematic syntax, unexpected instance coverage, and conflicts with external changes.
 - **Verification:** pre/post comparisons, KiCad CLI availability, exported netlist equivalence, ERC relevance, fixtures, and how to establish that a page change did not alter circuit behavior.
 - **PDF/export integration:** separately deferred until requested and adjudicated.
