@@ -7,6 +7,15 @@ User-selected: build a maintainable KiCad hierarchical page renumbering utility 
 
 ## History
 
+### 2026-11-10 — Correct KiCad 10 root-instance identity (architecture correction)
+- **Status:** current
+- **Provenance:** Codex stopped on concrete upstream KiCad 10.0.6 `issue23403` fixture evidence; ChatGPT independently checked the file, loader description, and corroborating KiCad 10.0.7 compatibility investigation.
+- **Decision:** supersede the previously specified requirement that the `.kicad_pro` top-level UUID must equal the root `.kicad_sch` document UUID. A valid non-nil project-registered UUID is the **effective root sheet-instance UUID** for hierarchy paths; an explicitly nil UUID falls back to the document UUID. Both stored identities are preserved without rewriting. Missing/malformed root identity and ambiguous or duplicate effective roots still fail closed.
+- **Rationale:** KiCad accepts documents whose registered root UUID and file-header UUID differ, and children use the project-registered UUID. Strict equality would reject valid projects and could misinterpret the instance graph.
+- **Current authority:** [ARCHITECTURE.md](ARCHITECTURE.md) and [REQUIREMENTS.md](REQUIREMENTS.md).
+- **Verification limitation:** no local KiCad 10 GUI/CLI execution was performed in this governance correction. Known KiCad CLI 10.0.6 versus Eeschema differences require version-aware independent integration validation.
+
+
 ### 2026-11-10 — Standing authorization for necessary development and test dependencies
 - **Status:** current
 - **Provenance:** explicit user instruction in response to Codex reporting that `pytest` was absent and package installation prohibited by the earlier task.
