@@ -49,6 +49,34 @@ def schematic(n, page="9", sheets=(), extra="", version="20260306", generator="1
             + "\n".join(sheets) + f"\n{root_page} (embedded_fonts no))\n").encode("utf-8")
 
 
+def drawing_rectangle():
+    """Original drawing fixture, modeled on KiCad 10's shape writer."""
+    return (f'(rectangle (start 10 10) (end 30 20) '
+            f'(stroke (width 0.254) (type default)) '
+            f'(fill (type none)) (uuid {quote(uid(200))}))')
+
+
+def drawing_table():
+    """Original fixture using 10.0.6 saveTable/saveTextBox field structure.
+
+    Reference: eeschema/sch_io/kicad_sexpr/sch_io_kicad_sexpr.cpp, tag 10.0.6.
+    Hierarchy-looking text is ordinary cell content, never instance metadata.
+    """
+    text = ('é drawing note: (sheet (property "Sheetname" "Fake root") '
+            '(property "Sheetfile" "missing.kicad_sch")) '
+            '(sheet_instances (path "/" (page "999"))) '
+            f'(instances (project "demo" (path "{ipath(1)}" (page "20")))) '
+            'schematic.top_level_sheets; literal \\ text')
+    return (f'(table (column_count 1) '
+            f'(border (external yes) (header yes) (stroke (width 0.254) (type default))) '
+            f'(separators (rows yes) (cols yes) (stroke (width 0.254) (type default))) '
+            f'(column_widths 80) (row_heights 20) (uuid {quote(uid(201))}) '
+            f'(cells (table_cell {quote(text)} (exclude_from_sim no) '
+            f'(at 10 30 0) (size 80 20) (margins 1 1 1 1) (span 1 1) '
+            f'(fill (type none)) (effects (font (size 1.27 1.27))) '
+            f'(uuid {quote(uid(202))}))))')
+
+
 def inventory(directory):
     return tuple((str(p.relative_to(directory)), p.is_dir(),
                   None if p.is_dir() else p.read_bytes(), p.stat().st_mtime_ns)
@@ -109,6 +137,113 @@ class PreviewTests(unittest.TestCase):
         self.assertEqual(item.source_file, path)
         self.assertEqual(path.read_bytes()[item.location.start:item.location.end], b'"9"')
         self.assertEqual(plan.affected_files, (path,))
+
+    def test_rectangle_object_accepted(self):
+        self.single(extra=drawing_rectangle())
+        plan = build_plan(self.project)
+        self.assertEqual([(i.display_name, i.old_page, i.new_page) for i in plan.items],
+                         [("Root", "9", "1")])
+
+    def test_table_object_accepted_without_discovering_cell_text(self):
+        self.single(extra=drawing_table())
+        plan = build_plan(self.project)
+        self.assertEqual([(i.instance_path, i.old_page, i.new_page) for i in plan.items],
+                         [((uid(1),), "9", "1")])
+        self.assertEqual(len(plan.snapshots), 2)  # The cell's missing file is not referenced.
+
+    def test_both_drawing_objects_preserved_in_candidate_bytes(self):
+        drawings = drawing_rectangle() + "\n\t" + drawing_table()
+        path = self.single(extra=drawings)
+        original = path.read_bytes()
+        plan = build_plan(self.project)
+        item = plan.items[0]
+        # Independent expected root-page position after all opaque drawing data.
+        expected_start = original.rindex(b'(page "9")') + len(b"(page ")
+        self.assertEqual((item.location.start, item.location.end), (expected_start, expected_start + 3))
+        self.assertEqual(item.location.file, path)
+        candidate = dict(candidate_bytes(plan))[path]
+        self.assertEqual(candidate, original[:expected_start] + b'"1"' + original[expected_start + 3:])
+        self.assertIn(drawings.encode(), candidate)
+        self.assertEqual(path.read_bytes(), original)
+
+    def test_drawing_objects_multiroot_reuse_locations_and_readonly_cli(self):
+        self.reused()
+        baseline = build_plan(self.project)
+        drawings = (drawing_rectangle() + "\r\n\t" + drawing_table()).encode()
+        for path in self.base.glob("*.kicad_sch"):
+            original = path.read_bytes()
+            path.write_bytes(original.replace(b'(paper "A4")', b'(paper "A4")\r\n' + drawings, 1))
+        before = inventory(self.base)
+        plan = build_plan(self.project)
+        signature = lambda p: [(i.instance_path, i.hierarchy, i.source_file, i.old_page,
+                                i.new_page, i.location.file) for i in p.items]
+        self.assertEqual(signature(plan), signature(baseline))
+        self.assertEqual([i.new_page for i in plan.items], list(map(str, range(1, 7))))
+        self.assertEqual(len(plan.edits), 6)
+        candidates = dict(candidate_bytes(plan))
+        for snapshot in plan.snapshots:
+            with self.subTest(file=snapshot.path.name):
+                candidate = candidates.get(snapshot.path, snapshot.data)
+                if snapshot.path.suffix == ".kicad_sch":
+                    self.assertIn(drawings, candidate)
+                edits = sorted((e for e in plan.edits if e.location.file == snapshot.path),
+                               key=lambda e: e.location.start)
+                original_pos = candidate_pos = 0
+                for edit in edits:
+                    start, end = edit.location.start, edit.location.end
+                    unchanged = snapshot.data[original_pos:start]
+                    self.assertEqual(candidate[candidate_pos:candidate_pos + len(unchanged)], unchanged)
+                    candidate_pos += len(unchanged)
+                    self.assertEqual(candidate[candidate_pos:candidate_pos + len(edit.replacement)],
+                                     edit.replacement)
+                    candidate_pos += len(edit.replacement)
+                    original_pos = end
+                self.assertEqual(candidate[candidate_pos:], snapshot.data[original_pos:])
+        for item in plan.items:
+            source = item.location.file.read_bytes()
+            self.assertEqual(source[item.location.start:item.location.end], quote(item.old_page).encode())
+            if len(item.instance_path) == 1:
+                expected = source.rindex(f'(page {quote(item.old_page)})'.encode()) + len(b"(page ")
+            else:
+                record = f'(path {quote("/" + "/".join(item.instance_path[:-1]))} (page '.encode()
+                expected = source.index(record) + len(record)
+            self.assertEqual(item.location.start, expected)
+        first, second = self.run_cli(self.project), self.run_cli(self.project)
+        self.assertEqual(first.returncode, 0, first.stderr)
+        self.assertEqual(second.returncode, 0, second.stderr)
+        self.assertEqual(first.stdout, second.stdout)
+        self.assertEqual(first.stdout.count("Instance:"), 6)
+        self.assertIn("6 sheets, 6 page changes, 3 affected files", first.stdout)
+        rejected = self.run_cli(self.project, "--apply")
+        self.assertEqual(rejected.returncode, 2)
+        self.assertIn("unsupported operation", rejected.stderr)
+        self.assertEqual(inventory(self.base), before)
+
+    def test_drawing_objects_do_not_hide_unknown_document_syntax(self):
+        self.single(extra=drawing_rectangle() + drawing_table() + "(future_hierarchy)")
+        with self.assertRaisesRegex(InvalidProject, "unsupported schematic top-level syntax"):
+            build_plan(self.project)
+
+    def test_malformed_drawing_sexpression_rejected(self):
+        for drawing in [drawing_rectangle(), drawing_table()]:
+            with self.subTest(drawing=drawing.split()[0]):
+                self.single(extra=drawing[:-1])  # Missing delimiter inside a known drawing object.
+                with self.assertRaisesRegex(InvalidProject, "unclosed"):
+                    build_plan(self.project)
+
+    def test_drawing_cell_page_text_cannot_supply_missing_root_record(self):
+        self.single(None, extra=drawing_rectangle() + drawing_table())
+        with self.assertRaisesRegex(InvalidProject, "missing root page record"):
+            build_plan(self.project)
+
+    def test_drawing_objects_do_not_hide_invalid_parent_path(self):
+        self.reused(False)
+        path = self.base / "a.kicad_sch"
+        original = path.read_bytes().replace(quote(ipath(1)).encode(), quote(ipath(1, 10)).encode(), 1)
+        drawings = (drawing_rectangle() + drawing_table()).encode()
+        path.write_bytes(original.replace(b'(paper "A4")', b'(paper "A4")' + drawings, 1))
+        with self.assertRaisesRegex(InvalidProject, "missing page record"):
+            build_plan(self.project)
 
     def test_multiple_roots_depth_first_shared_descendants(self):
         self.reused()

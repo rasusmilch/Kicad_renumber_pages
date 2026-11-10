@@ -247,13 +247,13 @@ def _sheet(node: Expr, project_name: str) -> Sheet:
     return Sheet(uuid, name, filename, tuple(pages))
 
 
-# Electrical content is parsed losslessly and left opaque. Unknown document-level
-# constructs are rejected rather than interpreted as a new schema encoding.
+# Non-hierarchy content, including known drawing objects, is parsed losslessly
+# and left opaque. Unknown document-level constructs still fail closed.
 _DOCUMENT_HEADS = frozenset("""
 version generator generator_version uuid paper title_block lib_symbols
 junction no_connect bus_entry wire bus polyline text text_box label global_label
 hierarchical_label netclass_flag sheet symbol image bus_alias sheet_instances
-embedded_fonts embedded_files rule_area
+embedded_fonts embedded_files rule_area rectangle table
 """.split())
 
 

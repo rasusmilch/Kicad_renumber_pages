@@ -14,6 +14,8 @@ Renumbering must not change circuit semantics, misnumber shared/repeated instanc
 
 Tests should use synthetic fixture projects plus a carefully vetted real-world fixture if authorization, confidentiality, and distribution permit. A customer schematic is not automatically a distributable fixture. Do not copy proprietary test assets into a public repository.
 
+Drawing compatibility regressions cover `rectangle`, `table`, and both together. Original synthetic drawing structures follow KiCad 10.0.6's [shape/table writer](https://gitlab.com/kicad/code/kicad/-/blob/10.0.6/eeschema/sch_io/kicad_sexpr/sch_io_kicad_sexpr.cpp) (`saveShape`, `saveTable`, and `saveTextBox`). Tests verify byte-identical drawings and every non-page span in candidate bytes, hierarchy-looking table-cell text remaining opaque, exact root/nested page locations, multiple roots and reused descendants, deterministic read-only CLI runs, and continued rejection of unknown top-level syntax, malformed expressions, missing actual pages, and invalid parent paths. Public issue23403 copies augmented with these original drawings also preview correctly; this is Python fixture validation, not KiCad 10 GUI/CLI integration evidence.
+
 ## Evidence rules
 - Codex must report actual commands executed, exit statuses, salient failures, and tests not run. No success without execution evidence.
 - When Python is introduced, use behavior-focused `pytest` tests and Python compile checks (`python -m compileall` or an approved equivalent) where available and applicable.
