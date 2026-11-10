@@ -7,6 +7,14 @@ User-selected: build a maintainable KiCad hierarchical page renumbering utility 
 
 ## History
 
+### 2026-11-10 — Standing authorization for necessary development and test dependencies
+- **Status:** current
+- **Provenance:** explicit user instruction in response to Codex reporting that `pytest` was absent and package installation prohibited by the earlier task.
+- **Decision:** Codex may install reasonably necessary development/test dependencies without repeated permission requests, including `pytest` in an isolated Python virtual environment and appropriate official OS/KiCad test tools in an isolated execution environment, with trusted sources, minimal scope, and transparent command/version/test receipts. This supersedes earlier task-level blanket no-install language.
+- **Boundary:** no broad upgrades, changes to the user's system, untrusted install sources, invented runtime dependencies, or new product/architecture decisions. The code's approved standard-library runtime remains unchanged.
+- **Current authority:** [AGENTS.md](../AGENTS.md), with testing guidance in [TESTING_STRATEGY.md](TESTING_STRATEGY.md).
+
+
 ### 2026-11-10 — User-authorized Codex GitHub refresh and task publication
 - **Status:** current
 - **Provenance:** explicit user directive after Codex encountered an outdated local checkout: Codex has internet access enabled, must pull current repository source, and must publish each completed task commit to GitHub.

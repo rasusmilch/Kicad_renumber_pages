@@ -34,4 +34,6 @@ These documents are project-specific governance, informed by [Codex_guide](https
 
 ## Current development commands
 
-None are established. No build, test, release, or KiCad verification command has been executed for this empty codebase. Documentation can be read directly; future commands must be inspected and verified before being advertised as supported.
+No build, test, release, or KiCad verification command has been executed for this governance-only codebase. The user has **authorized installing necessary test/build dependencies**, including `pytest`, without separate routine approval. Use a Python virtual environment, keep temporary artifacts out of Git, and report the actual install/test commands and their results. The approved application runtime remains standard-library-only.
+
+The current setup instructions and installation boundaries are in [AGENTS.md](AGENTS.md) and [docs/TESTING_STRATEGY.md](docs/TESTING_STRATEGY.md). These instructions are **authorized**, not recorded as already executed or verified.

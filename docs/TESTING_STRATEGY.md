@@ -24,7 +24,7 @@ Tests should use synthetic fixture projects plus a carefully vetted real-world f
 ## Commands
 **Verified implemented commands:** none.
 **Build/run:** no application.
-**Test runner:** not installed or configured in this repository, and no tests yet exist.
+**Test runner:** no test environment or passing test run has yet been established in this repository; Codex is now authorized to install `pytest` as a development dependency in an isolated environment and must run applicable tests rather than stopping solely to request installation permission.
 **KiCad CLI or GUI check:** not established or executed.
 **Useful future candidates (unverified):** `pytest`, `python -m compileall`, `git diff --check`, `kicad-cli sch export netlist`, and schematic/PDF readback. Exact invocation and availability must be established with the chosen environment and implementation. Do not assume a particular KiCad CLI output proves connectivity equivalence.
 
@@ -32,3 +32,10 @@ Tests should use synthetic fixture projects plus a carefully vetted real-world f
 - Codex's planning environment had KiCad 9.0.2 and Python 3.12.14, with no KiCad 10 runner. KiCad 9 cannot validate KiCad 10 imports/exports.
 - ChatGPT independently inspected a current KiCad 10 hierarchical schematic project and upstream KiCad 10 documentation. Use the [KiCad upstream issue23403 regression fixture](https://gitlab.com/kicad/code/kicad/-/tree/10.0.6/qa/data/eeschema/issue23403) as public reference for multiple roots sharing a subsheet; build minimal original synthetic test fixtures locally, without copying proprietary customer material.
 - Independent format evidence and safety boundary are in [ARCHITECTURE.md](ARCHITECTURE.md). Fixture structure tests must prove parent instance-path lookup, multi-root numbering, reused child file expansion and exact allowed byte changes. Real KiCad 10 GUI/CLI integration remains **unverified** until run on a KiCad 10 installation.
+
+
+## Test environment setup authorization (2026-11-10)
+
+The user explicitly permits Codex to install reasonably necessary development/test packages in its isolated execution environment. For Python tests, use a virtual environment and install `pytest` from a trusted package index; installing official distribution `python3-venv` or official KiCad 10 tooling for actually needed integration validation is authorized when safe and supported. Do not alter an end user's host system or install unrelated packages. Runtime remains standard-library-only unless a separate architecture decision is approved.
+
+This is permission to establish test capability, **not** evidence that the package has been installed or any tests have run. State actual commands, versions where relevant, results, and skipped/unavailable integration tests in the receipt. Refer to [AGENTS.md](../AGENTS.md) for the authoritative safety conditions.
