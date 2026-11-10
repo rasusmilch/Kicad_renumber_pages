@@ -1,0 +1,2 @@
+# Test runner only; the application has no third-party runtime dependencies.
+pytest==9.2.0

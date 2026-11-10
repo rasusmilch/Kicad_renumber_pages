@@ -1,14 +1,14 @@
 # KiCad hierarchical page renumbering
 
-**Status:** Governance and design discovery only. There is no implementation, packaged application, test suite, or released command in this repository.
+**Status:** A tested, read-only Python CLI discovers KiCad 10 sheet instances and previews whole-project page numbering. Apply, backup, and recovery are not implemented. There is no release or KiCad 10 application-based integration validation yet.
 
 ## Purpose
 
 Develop a safe, repeatable way to renumber KiCad hierarchical schematic **sheet instances** so each parent precedes its descendants and a complete child subtree is numbered before moving to the next sibling subtree. The motivating project has many nested and repeated channel sheets, which accumulate inconsistent page numbers after sheets are added, moved, or removed.
 
-The user also wants **built-in checks**. A successful implementation must not silently corrupt a KiCad project or change the circuit while editing page numbering. The complete behavior, ordering policy, supported environments, and implementation architecture require a separate explicit design adjudication.
+The preview validates root metadata, reachable sheet references, per-project parent-instance paths, and page records before producing a plan. It distinguishes reused source documents from their individual sheet instances. Ordering and architecture follow the selected [requirements](docs/REQUIREMENTS.md) and [architecture](docs/ARCHITECTURE.md).
 
-**Current authorization:** reviewed design supports a focused Codex implementation task for the read-only preview engine, followed by an independently reviewed apply/backup phase. There is still **no application code** and no authorization to mutate any user schematic.
+**Current implementation:** read-only preview, including in-memory verification of proposed page-only edits. `--apply` is explicitly rejected. No user schematic mutation is authorized by this implementation.
 
 ## Decision ownership
 
@@ -20,7 +20,7 @@ The user supplies intended operation, constraints, and approvals. ChatGPT inspec
 - [`docs/REQUIREMENTS.md`](docs/REQUIREMENTS.md) — current selected intent, safety boundaries, and open product decisions.
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — approved KiCad 10 instance model, parser/traversal, and limited recovery architecture.
 - [`docs/ROADMAP.md`](docs/ROADMAP.md) — current stage and conditional next phases.
-- [`docs/TESTING_STRATEGY.md`](docs/TESTING_STRATEGY.md) — validation expectations and evidence limits; no passing tests are claimed.
+- [`docs/TESTING_STRATEGY.md`](docs/TESTING_STRATEGY.md) — behavior-test evidence, validation expectations, and limits.
 - [`docs/DECISION_LOG.md`](docs/DECISION_LOG.md) — historical decision provenance and pending recommendations; current authority remains in the documents above.
 - [`CHANGELOG.md`](CHANGELOG.md) — canonical effect-oriented project change history.
 
@@ -34,6 +34,28 @@ These documents are project-specific governance, informed by [Codex_guide](https
 
 ## Current development commands
 
-No build, test, release, or KiCad verification command has been executed for this governance-only codebase. The user has **authorized installing necessary test/build dependencies**, including `pytest`, without separate routine approval. Use a Python virtual environment, keep temporary artifacts out of Git, and report the actual install/test commands and their results. The approved application runtime remains standard-library-only.
+Requires Python 3.11+ and no third-party runtime packages. From the repository directory:
 
-The current setup instructions and installation boundaries are in [AGENTS.md](AGENTS.md) and [docs/TESTING_STRATEGY.md](docs/TESTING_STRATEGY.md). These instructions are **authorized**, not recorded as already executed or verified.
+```sh
+python renumber_pages.py /path/to/project.kicad_pro
+```
+
+The explicit project registry `schematic.top_level_sheets` defines all roots. All roots and child groups are naturally sorted by case-folded name, ASCII numeric runs, original name, then instance UUID path. Traversal is depth-first, parent-first, with continuous pages starting at 1 and no synthetic root. Empty instantiated sheets count; unrelated files are excluded.
+
+The launcher prints every instance path, display name, source, old/new page, exact page-token byte range, affected files, and totals. It creates no logs, backups, import caches, or other output files. Exit status is 0 for either successful outcome (changes needed or already correct), 2 for invalid/unsupported input or CLI usage, and 3 for an internal failure. `--apply` returns an unsupported-operation error, even when the plan would be a no-op.
+
+Only schematic version `20260306` with `generator_version "10.0"` is accepted. Non-nil registered root UUIDs govern instance paths even if different from document UUIDs; explicit nil registry UUIDs fall back to document UUIDs. Missing/malformed identities and duplicate effective roots fail. External references, symlinks, hardlinks, ambiguous/missing instance records, cycles, and unsupported structural syntax fail closed. Existing page strings may be duplicated, nonnumeric, or empty. File bytes and modification times remain unchanged; ordinary filesystem reads may update access times.
+
+Set up the development environment on Linux:
+
+```sh
+python -m venv .venv
+.venv/bin/python -m pip install --index-url https://pypi.org/simple -r requirements-dev.txt
+.venv/bin/python -m pytest -q
+.venv/bin/python -m compileall kicad_renumber tests renumber_pages.py
+git diff --check
+```
+
+On Windows, use `.venv\Scripts\python.exe` instead of `.venv/bin/python`. Windows and Python 3.11 have not been separately exercised; validation here used Python 3.12.14 on Linux. The same behavior suite also runs with `python -m unittest discover -q`. Development checks create ignored caches; the preview launcher suppresses import-cache writes.
+
+See [TESTING_STRATEGY.md](docs/TESTING_STRATEGY.md) for evidence and limits. Reading upstream KiCad 10 fixtures is format evidence, not Eeschema GUI or KiCad CLI integration validation. In particular, KiCad CLI 10.0.6 alone is not a multi-root identity oracle.

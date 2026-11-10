@@ -1,10 +1,10 @@
 # KiCad 10 renumberer: approved MVP architecture and format evidence
 
-**Status:** ChatGPT engineering adjudication following the user's Round 1–3 decisions and Codex's read-only planning receipt (2026-11-10). No implementation or tests exist at this writing. This document is current architecture authority; receipt/inspection details below are evidence, not execution claims.
+**Status:** ChatGPT engineering adjudication following the user's Round 1–3 decisions and Codex's read-only planning receipt (2026-11-10), including the effective-root-UUID amendment. The read-only parser, graph, plan, preview, and behavior tests are implemented. Apply/backup/recovery below remain approved future design, not implemented capability. This document is current architecture authority; format evidence is distinct from installation-based validation.
 
 ## Scope and operation
 
-- Standalone Python **3.11+**, standard library for runtime; `pytest` permitted as a development dependency. A single explicit `.kicad_pro` input path, terminal-only output, preview by default, explicit `--apply` for edits.
+- Standalone Python **3.11+**, standard library for runtime; `pytest` permitted as a development dependency. A single explicit `.kicad_pro` input path and terminal-only output. Current implementation provides preview only and rejects `--apply`; explicit `--apply` for edits belongs to the separate future write phase.
 - Target **KiCad 10** native schematic format, initially verified `(version 20260306)` and `(generator_version "10.0")`. Accept additional schema encodings only when independently verified and approved. **Do not** make KiCad itself a runtime dependency for read-only plan or controlled targeted edits.
 - A read-only project snapshot, one instance graph, and one numbering-plan function serve preview and apply. Apply reloads and verifies inputs and recomputes the same plan. A page-change-free operation is a true filesystem no-op.
 - The `.kicad_pro` is read only. Do not mutate non-page-number schematic content. PDF generation, GUI/plugin front ends, subtree-only edits, or reannotation are outside the MVP.

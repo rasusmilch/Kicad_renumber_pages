@@ -18,7 +18,7 @@ For substantial workflow questions consult the user's `rasusmilch/Codex_guide`, 
 - Material unresolved behavior is **Open**, not tacit permission. Stop and seek ChatGPT/user adjudication instead of guessing. A plan or receipt is a claim, not authority.
 
 ## Work stages and scope
-- The repository currently contains governance only. A read-only planning investigation was independently reviewed and the [architecture](docs/ARCHITECTURE.md) adjudicated. **Only** an explicitly assigned focused Codex execution task may implement a named phase; no user-project mutation is authorized by governance alone.
+- The repository contains a read-only preview engine and behavior tests following the independently reviewed [architecture](docs/ARCHITECTURE.md). Apply, backup, and recovery remain unimplemented. **Only** an explicitly assigned focused Codex execution task may implement a named phase; no user-project mutation is authorized by governance alone.
 - For nontrivial work use **Plan (read-only) → Review / explicit user-and-ChatGPT adjudication → focused Execute → Validate → independent review**. One feature/fix workstream, ordinarily one draft PR, and independent semantic subtasks when warranted. **Codex is expressly authorized and required to refresh its GitHub checkout before work and publish completed validated commits to GitHub** under the following controlled procedure.
 - The user and ChatGPT retain review, product/architecture adjudication, and merge closure. A Codex commit and push publish evidence for review; they do **not** mean the task, PR, or design has received independent GO. If a local commit or remote push fails, preserve the complete validated local state, stop short of claiming publication, and report the failure. Do not reset, clean, force-push, or discard changes.
 - Do not introduce PDF output, GUI/plugin integration, project conversion, KiCad project mutations, new compatibility promises, or unrelated automation merely because they appear convenient. Compare new mechanisms with the simplest viable approved design before adding new persistent concepts.
@@ -62,11 +62,12 @@ This bounded authorization supersedes earlier task-language prohibiting package 
 - Do not add duplicate governance trackers, empty anchors, invented command lists, or unnecessary templates.
 
 ## Verified commands and limits
-- **Build/run:** none exists; there is currently no source code or application.
-- **Automated tests:** none exists; no suite or CI has been configured or run.
-- **KiCad validation / netlist checks:** no project-specific command has been established or executed.
-- **Documentation review:** Markdown and Git diff inspection are applicable when a local checkout is available. `git diff --check`, `git status --short`, and manual relative-link inspection are *suggested*, not represented as executed or verified for this repository.
-- When implementation arrives, inspect the actual files/environment before recording any command as supported; explicitly state unavailable, unknown, unverified, or not applicable evidence.
+- **Run:** `python renumber_pages.py <explicit-project.kicad_pro>`; read-only preview only. `--apply` is rejected.
+- **Automated tests:** `.venv/bin/python -m pytest -q` and `python -m unittest discover -q`; behavior tests exist and have run. No CI is configured.
+- **Compilation:** Python compileall checks have run. See [TESTING_STRATEGY.md](docs/TESTING_STRATEGY.md) for exact commands and evidence limits.
+- **KiCad validation / netlist checks:** upstream KiCad 10 fixture bytes have been analyzed by the Python engine, but no installed KiCad 10 GUI/CLI validation or netlist comparison has run.
+- **Documentation review:** `git diff --check` and `git status --short` have run; future receipts must report current results rather than inherit these claims.
+- Inspect the actual current files/environment before recording any command as supported; explicitly state unavailable, unknown, unverified, or not applicable evidence.
 
 ## Safety and stop conditions
 - Never rewrite KiCad sheet UUIDs, connections, or symbol contents as incidental formatting. The approved traversal, parsing and allowed page-only changes are owned by [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). Stop when evidence would require a material departure from this architecture; do not invent the departure.

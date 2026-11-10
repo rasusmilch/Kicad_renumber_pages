@@ -4,4 +4,5 @@ Canonical project-change history for material user-facing and maintainability ef
 
 ## Unreleased
 
-- Established governance and selected a KiCad 10 multi-root, instance-aware page-renumbering design with conservative file-preservation, backup/recovery and validation boundaries. No executable renumberer exists.
+- Added a read-only KiCad 10 page-numbering preview with natural parent-first ordering across all registered roots, repeated-sheet instance handling, effective root UUID resolution, strict hierarchy validation, and verified page-value byte locations. Existing project and schematic files remain unchanged; apply, backup, and recovery are not implemented.
+- Established governance and selected conservative file-preservation, future backup/recovery, validation, and independent review boundaries.

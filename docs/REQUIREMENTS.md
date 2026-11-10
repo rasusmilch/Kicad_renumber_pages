@@ -1,6 +1,6 @@
 # Product requirements and unresolved decisions
 
-**Status:** Design discovery; no implemented product. This document contains selected intent, engineering constraints already expressed by the user, and **Open** decisions. A proposed option is not an approved contract.
+**Status:** The read-only numbering engine and CLI are implemented and behavior-tested. Apply, backups, and recovery are not implemented. This document distinguishes selected behavior and remaining validation decisions; a proposed option is not an approved contract.
 
 ## Purpose and users
 The intended utility serves KiCad schematic authors managing large hierarchical designs with repeated sheet instances. The initiating use case is an approximately 84-page AFC Interface schematic with multiple nested and repeated channels. Editing sheets causes manual page numbers to become scattered.
@@ -21,14 +21,14 @@ The user wants **correct parent-first renumbering** with **built-in safeguards**
 - **Page assignment:** the first top-level schematic sheet is page `1`, then consecutively assign `2..N` without gaps or preserving old assignments, traversing each top-level subtree completely before the next. Empty but instantiated sheets count as pages. In a single-top-level project, its root remains page 1.
 - **Traversal:** depth-first pre-order across a forest of one or more top-level sheets; natural name-sort top-level sheets as siblings, then process each entire descendant subtree before the next sibling subtree. Do not synthesize a numbered project root.
 - **Scope:** renumber the complete hierarchy of the selected project, not an individual subtree. Ignore unreferenced `.kicad_sch` files outside the hierarchy; fail rather than quietly omit missing required referenced files. Shared source sheets are represented by each distinct instance path, not by source filename.
-- **Still Open:** remaining detailed file/integrity guarantees, interrupted-run recovery verification, and KiCad/Python version baselines. These must not be inferred from the selected sorting policy.
+- **Remaining evidence:** installed KiCad 10 Eeschema GUI validation, platform/version coverage, and separately reviewed write/recovery verification. The supported format and Python target are selected in [ARCHITECTURE.md](ARCHITECTURE.md).
 
 ## Selected architecture and workflow — Round 2 (2026-11-10)
 - **Interface:** standalone Python command-line utility, without KiCad GUI/plugin integration for the MVP.
 - **Project entry point:** require the user to supply a specific existing `.kicad_pro` file. Read the project's schematic metadata to identify the schematic; do not search the directory and choose a root by guesswork. This project file is read-only for page renumbering.
 - **Root admissibility (superseded restriction):** accept **one or more** positively identified top-level schematic sheets from the project's `schematic.top_level_sheets` metadata. **All** roots belong to one whole-project ordering and continuous page-number sequence. Treat each top-level sheet as a sibling root; sort the roots by the same selected natural alphabetical order and traverse each subtree. Never add a synthetic numbered root. A valid non-nil registered top-level UUID is authoritative for hierarchy instance paths **even when it differs from the referenced schematic document UUID**. If the registered UUID is explicitly nil, use the valid document UUID. Reject missing/malformed root identity, duplicate effective roots or other ambiguous associations; do not guess or rewrite identities. See [ARCHITECTURE.md](ARCHITECTURE.md).
-- **Execution:** the default command only discovers, validates, calculates, and prints a proposed numbering plan; it performs no writes. Only an explicit `--apply` can authorize writes, subject to the separate safety policy still to be selected.
-- **Plan reuse:** preview and apply use one deterministic numbering-plan computation. Apply re-reads and validates the current source; apply must not act on a stale in-memory result. Controls for source changes between separate preview and apply invocations remain Round 3.
+- **Execution:** the implemented command only discovers, validates, calculates, and prints a proposed numbering plan; it performs no writes and explicitly rejects `--apply`. The future write phase requires explicit `--apply` under the selected safety architecture.
+- **Plan reuse:** the read-only engine exposes one deterministic immutable numbering plan with exact page-token byte locations and in-memory candidate verification. Future apply must reload inputs and reuse that computation under the selected source-change checks.
 - **Reporting:** human-readable terminal output showing project/root, complete intended ordering, old-to-new page numbers, affected files, change/no-op summary, and actionable diagnostic errors. No JSON, CSV, or additional persistent reporting format for MVP.
 - **Portability direction:** intended for Kubuntu and Windows; exact Python/KiCad version support and platform-specific validations remain Round 4.
 
@@ -59,6 +59,6 @@ A safe plan may investigate and recommend the above, but **must not make these d
 There is no approval to: flatten schematic hierarchy, eliminate repeated circuit pages, edit circuit connectivity, reannotate components, create CAD design blocks, modify PCB layouts, convert old KiCad formats, publish PDFs, or automatically reorganize schematic sheets. Any such capability requires a separately reviewed design decision.
 
 ## Evidence and limitations
-- The GitHub repository was initialized empty; it contains governance documents only.
+- The GitHub repository was initialized empty; it now contains governance, the read-only CLI/engine, and original synthetic behavior tests.
 - The approximately 84-page AFC case is an observed motivating example, not a frozen test fixture or a claim that its current exact page numbering has been independently revalidated here.
-- No working script, plugin, parser, package, test command, or KiCad verification result yet exists.
+- A working parser, planner, preview launcher, and Python test commands exist. No writer, plugin, release packaging, CI, or installed KiCad 10 GUI/CLI verification result exists.
