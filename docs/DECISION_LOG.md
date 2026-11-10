@@ -3,17 +3,27 @@
 This file is historical decision/provenance evidence, **not** the authority for current intended behavior. See [REQUIREMENTS.md](REQUIREMENTS.md), [ROADMAP.md](ROADMAP.md), and [README.md](../README.md) for current direction. The decision status and provenance are separate; editing this file does not make the editor the decision maker.
 
 ## Current summary
-User-selected: build a maintainable KiCad hierarchical page renumbering utility with built-in checks and preserve the electrical design. Round 1 selects natural name-sorted depth-first parent-first numbering, continuous root-first pages including instantiated empty sheets, and complete-project scope. Round 2 selects an explicit .kicad_pro entry point, one root only, standalone Python CLI, default read-only preview with explicit --apply, and terminal-only reporting. User and ChatGPT make product and architecture decisions; Codex implements approved tasks. Supported version baselines, file-write/recovery rules, and detailed verification remain **Open**.
+User-selected: build a maintainable KiCad hierarchical page renumbering utility with built-in checks and preserve the electrical design. Round 1 selects natural name-sorted depth-first parent-first numbering, continuous root-first pages including instantiated empty sheets, and complete-project scope. Round 2 selects an explicit .kicad_pro entry point, standalone Python CLI, default read-only preview with explicit --apply, and terminal-only reporting; its initial one-root-only restriction was superseded by the user on November 10. All top-level schematic roots are now included, with natural ordering and continuous numbering. Round 3 selects mandatory timestamped backups, closed-editor apply, fail-closed input/change checks, no-op stability and proportional recovery. User and ChatGPT make product and architecture decisions; Codex implements approved tasks. Supported version baselines, detailed write/recovery implementation and semantic verification remain **Open**.
 
 ## History
+
+### 2026-11-10 — Multiple top-level sheets and Round 3 safety
+- **Status:** current
+- **Provenance:** explicit user revision of Round 2 and answers to Round 3; ChatGPT engineering adjudication of multi-root ordering and proportional recovery.
+- **Decision:** support all top-level schematic roots declared by the project; treat them as natural-name-sorted siblings with depth-first subtree traversal and one continuous page sequence starting at the first actual sheet as page 1. No phantom root. Supersedes the single-root MVP restriction.
+- **Safety:** require closed schematic editor for apply; mandatory verified backups under `backup-renumber/<local timestamp>/`; fail on invalid/changed inputs; perform no writes or backups when numbering is already correct. Favor simple rollback plus interrupted-operation detection over a complex transaction journal; power-loss recovery cannot be guaranteed by atomic individual-file replacement.
+- **Authority:** [REQUIREMENTS.md](REQUIREMENTS.md).
+- **Open:** parser implementation, precise recovery state mechanics, and validation/compatibility baselines.
+
 
 ### 2026-11-10 — Round 2 architecture and operator workflow approved
 - **Status:** current
 - **Provenance:** explicit user selections in Round 2, with ChatGPT engineering adjudication of root discovery, preview/apply planner consistency, and unsupported-state behavior.
-- **Decision:** standalone Python CLI; explicitly supplied `.kicad_pro` entry point; reject multi-root/ambiguous-root projects in the MVP; read-only preview by default and opt-in `--apply`; only human-readable terminal reporting.
-- **Implementation constraints:** use one plan-calculation implementation for preview/apply; reload source on apply; do not modify the `.kicad_pro`; fail closed for root ambiguity; no database, config, or machine-readable reports in the MVP. Exact parsing and persistence mechanisms are still Open.
+- **Decision originally selected:** standalone Python CLI; explicitly supplied `.kicad_pro` entry point; reject multi-root/ambiguous-root projects in the MVP; read-only preview by default and opt-in `--apply`; only human-readable terminal reporting.
+- **Later supersession:** the user explicitly replaced the multi-root rejection with support for multiple top-level sheets on 2026-11-10. See the later entry above.
+- **Retained implementation constraints:** use one plan-calculation implementation for preview/apply; reload source on apply; do not modify the `.kicad_pro`; fail closed for root *identity* ambiguity; no database, config, or machine-readable reports in the MVP. Exact parsing and persistence mechanisms are still Open.
 - **Authority:** [REQUIREMENTS.md](REQUIREMENTS.md).
-- **Still Open:** file-modification safety, crash recovery, platform/version support, and validation contract.
+- **Still Open:** implementation details for approved file-modification safety, platform/version support, and validation contract.
 
 
 ### 2026-11-10 — Round 1 numbering behavior approved
