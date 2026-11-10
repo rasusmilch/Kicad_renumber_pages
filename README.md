@@ -30,7 +30,7 @@ These documents are project-specific governance, informed by [Codex_guide](https
 
 **Intent → read-only Plan → review and explicit adjudication → focused Execute → Validate → independent review.** Use one focused workstream with separate implementation and verification checkpoints as warranted. Each Codex task must include **Goal, Background, Changes, Tests, Commands, Acceptance criteria**, and require a final receipt identifying files changed, command results, and unverified claims. Governance instructions live in `AGENTS.md`; task prompts carry the focused delta.
 
-When implementation exists, operate on a prepared local checkout, not through hosted Git from Codex. GitHub publication, PR review, and merge authorization are separate actions under ChatGPT/user control.
+**Git workflow for this project:** Codex checks the remote identity and clean state, fetches the latest approved source from GitHub, works on a feature branch, and pushes each completed, validated local commit to the corresponding remote feature branch. Codex must verify remote publication and report failures without discarding work. The user and ChatGPT retain independent review, PR approval, and merge authority. This project-specific authorization intentionally differs from Codex_guide's older prepared-local, no-network rule; see [AGENTS.md](AGENTS.md).
 
 ## Current development commands
 

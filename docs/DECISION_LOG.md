@@ -7,6 +7,14 @@ User-selected: build a maintainable KiCad hierarchical page renumbering utility 
 
 ## History
 
+### 2026-11-10 — User-authorized Codex GitHub refresh and task publication
+- **Status:** current
+- **Provenance:** explicit user directive after Codex encountered an outdated local checkout: Codex has internet access enabled, must pull current repository source, and must publish each completed task commit to GitHub.
+- **Decision:** allow and require controlled remote Git inspection/fetch and fast-forward source preparation; implement on a named feature branch; after validated tracked execution, commit locally and push that commit to the same remote feature branch, then verify publication. Stop on conflicts, uncommitted work, missing authentication, or non-fast-forward conditions; no force push, reset, or unapproved merge. ChatGPT/user retain PR acceptance and merge authority.
+- **Scope:** this repository only. This intentionally supersedes its earlier blanket no-network/no-push rule. The upstream `Codex_guide` remains unchanged and has a conflicting generic prepared-local policy; that guide-wide issue is not silently declared resolved by this local authorization.
+- **Current authority:** [AGENTS.md](../AGENTS.md).
+
+
 ### 2026-11-10 — Post-planning format evidence and MVP implementation architecture
 - **Status:** current
 - **Provenance:** ChatGPT engineering review/adjudication of Codex's read-only plan, user-approved Round 1–3 behavior, current KiCad 10 AFC evidence, and published KiCad source/format evidence.

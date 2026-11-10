@@ -8,7 +8,7 @@ Record current intent, decision ownership, authority routes, commands (including
 ## 1 — Read-only discovery and design (completed with qualified review)
 Codex completed a read-only plan, but its local environment contained KiCad 9 and an older governance snapshot. ChatGPT independently inspected current KiCad 10 schematic and project evidence, including a public upstream multi-root/shared-subsheet regression fixture. The approved MVP architecture and remaining validation boundary are specified in [ARCHITECTURE.md](ARCHITECTURE.md).
 
-A refreshed prepared checkout containing the latest current-state authority is required for execute work. A historical planning receipt is evidence, not approval to invent behavior.
+Codex must refresh its checkout against the current GitHub source before execute work, using the controlled non-destructive procedure in [AGENTS.md](../AGENTS.md), and push completed validated task commits to its remote feature branch. A historical planning receipt is evidence, not approval to invent behavior.
 
 ## 2 — MVP (approved design; implementation pending)
 First implement and test the **read-only** parser, root/sheet instance graph, deterministic numbering plan, and terminal preview. Review the receipt and source. Then implement **apply** with mandatory verified timestamped backups, minimal interruption detection, rollback limits, and failure-injection tests. Follow semantic task boundaries, not an arbitrary number of files or prompts. No PDF generation or other workflow expansion.
