@@ -1,6 +1,6 @@
 # KiCad hierarchical page renumbering
 
-**Status:** The Python CLI previews numbering by default and implements explicit `--apply` with verified backups, per-file replacement, conservative rollback, and interruption detection. Python fixture and failure-injection tests pass. This implementation awaits independent review and installed KiCad 10 validation; it is not production-ready or authorized here for live customer use.
+**Status:** The Python CLI previews numbering by default and implements explicit `--apply` with verified backups, per-file replacement, conservative rollback, and interruption detection. Python fixture and failure-injection tests pass. Independent file checks, KiCad 10.0.8 CLI exports, and actual Eeschema hierarchy inspection passed on disposable projects. The qualification evidence awaits independent review; this is not a production-readiness or live-customer-use approval.
 
 ## Purpose
 
@@ -88,4 +88,4 @@ git diff --check
 
 On Windows, use `.venv\Scripts\python.exe` instead of `.venv/bin/python`. Windows and Python 3.11 have not been separately exercised; validation here used Python 3.12.14 on Linux. The same behavior suite also runs with `python -m unittest discover -q`. Development checks create ignored caches; the launcher suppresses incidental import-cache writes in both modes.
 
-See [TESTING_STRATEGY.md](docs/TESTING_STRATEGY.md) for evidence and limits. Reading upstream KiCad 10 fixtures is format evidence, not Eeschema GUI or KiCad CLI integration validation. In particular, KiCad CLI 10.0.6 alone is not a multi-root identity oracle.
+See [TESTING_STRATEGY.md](docs/TESTING_STRATEGY.md) for evidence and limits. Qualification used the official KiCad 10.0.8 Lite AppImage on Debian 13 x86_64, separately from installed KiCad 9.0.2. It includes actual GUI navigation of all 15 instances across three disposable projects and CLI netlist comparisons. Coverage is limited to those fixtures and that environment; KiCad CLI 10.0.6 alone remains insufficient as a multi-root identity oracle.

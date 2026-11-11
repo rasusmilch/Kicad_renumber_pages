@@ -1,6 +1,6 @@
 # KiCad 10 renumberer: approved MVP architecture and format evidence
 
-**Status:** ChatGPT engineering adjudication following the user's Round 1–3 decisions and Codex's read-only planning receipt (2026-11-10), including the effective-root-UUID amendment. The parser, graph, plan, preview, explicit apply, mandatory backups, limited rollback, and interruption detection are implemented and Python-tested on disposable fixtures. Write-phase independent review and installed KiCad 10 validation remain pending. This document is current architecture authority; format evidence and Python checks are distinct from production readiness.
+**Status:** ChatGPT engineering adjudication following the user's Round 1–3 decisions and Codex's read-only planning receipt (2026-11-10), including the effective-root-UUID amendment. The parser, graph, plan, preview, explicit apply, mandatory backups, limited rollback, and interruption detection are implemented and Python-tested on disposable fixtures. Independent source review reported no blocking apply defect. Disposable-project KiCad 10.0.8 GUI/CLI qualification has run; evidence acceptance remains with the user and ChatGPT. This document is current architecture authority; format evidence and Python checks are distinct from production readiness.
 
 ## Scope and operation
 
@@ -34,7 +34,7 @@ Evidence:
 - [Independent KiCad 10.0.7 compatibility investigation](https://github.com/mixelpixx/Konnect/issues/913) — corroborates UUID override and documents KiCad CLI 10.0.6/10.0.7 differences relevant to validation.
 - A current private AFC project's `.kicad_pro`, root `.kicad_sch`, and repeated-channel `.kicad_sch` were inspected by ChatGPT on 2026-11-10. Their real UUIDs, source content, and customer design are not fixtures for this public repository.
 
-These establish representative field locations but **do not establish** that a complete multi-root renumbering has been tested on an installed KiCad 10 application.
+These source references establish representative field locations. Separate installed-application evidence now includes complete multi-root renumbering and GUI navigation on official KiCad 10.0.8; see [TESTING_STRATEGY.md](TESTING_STRATEGY.md). This does not broaden the approved format or architecture.
 
 ## Ordered instance traversal
 

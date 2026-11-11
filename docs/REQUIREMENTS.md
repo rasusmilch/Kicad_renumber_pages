@@ -1,6 +1,6 @@
 # Product requirements and unresolved decisions
 
-**Status:** The numbering engine, default read-only preview, and explicit apply with mandatory backups, limited rollback, and interruption detection are implemented and Python-tested on disposable fixtures. Independent review and installed KiCad 10 validation remain pending; no production-readiness or live-customer-use claim is made. This document distinguishes selected behavior and remaining validation decisions.
+**Status:** The numbering engine, default read-only preview, and explicit apply with mandatory backups, limited rollback, and interruption detection are implemented and Python-tested on disposable fixtures. Independent source review reported no blocking apply defect; disposable-project file checks and installed KiCad 10.0.8 GUI/CLI qualification have run. Independent review of that evidence remains pending; no production-readiness or live-customer-use claim is made. This document distinguishes selected behavior and remaining validation decisions.
 
 ## Purpose and users
 The intended utility serves KiCad schematic authors managing large hierarchical designs with repeated sheet instances. The initiating use case is an approximately 84-page AFC Interface schematic with multiple nested and repeated channels. Editing sheets causes manual page numbers to become scattered.
@@ -21,7 +21,7 @@ The user wants **correct parent-first renumbering** with **built-in safeguards**
 - **Page assignment:** the first top-level schematic sheet is page `1`, then consecutively assign `2..N` without gaps or preserving old assignments, traversing each top-level subtree completely before the next. Empty but instantiated sheets count as pages. In a single-top-level project, its root remains page 1.
 - **Traversal:** depth-first pre-order across a forest of one or more top-level sheets; natural name-sort top-level sheets as siblings, then process each entire descendant subtree before the next sibling subtree. Do not synthesize a numbered project root.
 - **Scope:** renumber the complete hierarchy of the selected project, not an individual subtree. Ignore unreferenced `.kicad_sch` files outside the hierarchy; fail rather than quietly omit missing required referenced files. Shared source sheets are represented by each distinct instance path, not by source filename.
-- **Remaining evidence:** installed KiCad 10 Eeschema GUI validation, platform/version coverage, and independent review of the implemented write/recovery behavior. The supported format and Python target are selected in [ARCHITECTURE.md](ARCHITECTURE.md).
+- **Remaining evidence:** wider platform/version and representative-design coverage, and independent acceptance of the implemented write/recovery behavior and KiCad 10.0.8 qualification evidence. The supported format and Python target are selected in [ARCHITECTURE.md](ARCHITECTURE.md).
 
 ## Selected architecture and workflow — Round 2 (2026-11-10)
 - **Interface:** standalone Python command-line utility, without KiCad GUI/plugin integration for the MVP.
@@ -61,4 +61,4 @@ There is no approval to: flatten schematic hierarchy, eliminate repeated circuit
 ## Evidence and limitations
 - The GitHub repository was initialized empty; it now contains governance, the CLI/engine, explicit apply, and original synthetic behavior/failure-injection tests.
 - The approximately 84-page AFC case is an observed motivating example, not a frozen test fixture or a claim that its current exact page numbering has been independently revalidated here.
-- A working parser, planner, preview/apply launcher, verified-backup/limited-recovery implementation, and Python test commands exist. No plugin, release packaging, CI, or installed KiCad 10 GUI/CLI verification result exists.
+- A working parser, planner, preview/apply launcher, verified-backup/limited-recovery implementation, and Python test commands exist. No plugin, release packaging, or CI exists. KiCad 10.0.8 GUI/CLI results on three disposable fixtures, independent byte checks, and recovery evidence are recorded in [TESTING_STRATEGY.md](TESTING_STRATEGY.md); they do not qualify every project or platform.

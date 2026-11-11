@@ -1,6 +1,6 @@
 # Validation strategy
 
-**Current evidence:** the parser, graph, immutable plan, terminal preview, and explicit apply/backup/limited rollback have passing Python behavior and failure-injection tests on disposable fixtures. A project-local virtual environment contains pytest. Direct analysis of upstream KiCad 10.0.6 fixture bytes succeeds; no installed KiCad 10 Eeschema GUI/CLI validation or netlist comparison has run. Write-phase independent review remains pending; no CI exists and passing tests do not establish production readiness or power-loss durability.
+**Current evidence:** the parser, graph, immutable plan, terminal preview, and explicit apply/backup/limited rollback have passing Python behavior and failure-injection tests on disposable fixtures. A project-local virtual environment contains pytest. Independent file-level checks, actual Eeschema hierarchy inspection, and normalized netlist comparisons have run with official KiCad 10.0.8 on disposable upstream/synthetic projects. Independent source review reported no blocking apply defect; qualification evidence awaits independent acceptance; no CI exists and passing tests do not establish production readiness or power-loss durability.
 
 ## Risk to establish confidence against
 Renumbering must not change circuit semantics, misnumber shared/repeated instances, silently skip sheets, partially write files, or claim safety when unsupported syntax or an ambiguous hierarchy prevents confidence.
@@ -36,12 +36,12 @@ Injected failures cover marker/backup creation and writing, corrupted backups be
 
 **Apply:** `python renumber_pages.py <disposable-project.kicad_pro> --apply`. Disposable demonstrations cover successful writes/backups, a completely unchanged second invocation, and a detected second-replacement failure with verified restoration and retained backups. No real customer file is used. Exit 4 covers failure before original writes or with verified restoration; exit 5 retains unresolved evidence and requires manual inspection. The exact manual marker-clearing procedure and digest interpretation are in [README.md](../README.md#manual-recovery-after-interruption).
 
-**Unverified:** Python 3.11 execution, Windows, network filesystems, installed KiCad 10 GUI/CLI loading, and netlist equivalence. The existing KiCad 9 installation cannot establish KiCad 10 compatibility. Any future KiCad export command must be verified for its exact version and whole-forest coverage; CLI success alone is insufficient.
+**Unverified:** Python 3.11 execution, Windows, native Kubuntu, network filesystems, broad design coverage, physical power-loss durability, and hot reload with an open editor. Installed KiCad 10.0.8 results are scoped below; KiCad 9 and CLI success alone cannot establish full KiCad 10 GUI compatibility.
 
 ## Evidence gap and approved fixtures (2026-11-10)
 - Codex's planning environment had KiCad 9.0.2 and Python 3.12.14, with no KiCad 10 runner. KiCad 9 cannot validate KiCad 10 imports/exports.
 - ChatGPT independently inspected a current KiCad 10 hierarchical schematic project and upstream KiCad 10 documentation. Use the [KiCad upstream issue23403 regression fixture](https://gitlab.com/kicad/code/kicad/-/tree/10.0.6/qa/data/eeschema/issue23403) as public reference for multiple roots sharing a subsheet; build minimal original synthetic test fixtures locally, without copying proprietary customer material.
-- Independent format evidence and safety boundary are in [ARCHITECTURE.md](ARCHITECTURE.md). Fixture structure tests must prove parent instance-path lookup, multi-root numbering, reused child file expansion and exact allowed byte changes. Include a fixture with a non-nil project-registered root UUID **different** from the document header UUID (as in KiCad upstream issue23403); assert acceptance and child paths keyed to the registered UUID. Include equality and explicit nil-registry-UUID fallback cases; reject absent/malformed registry UUIDs and duplicate effective root UUIDs, and verify neither identity is changed. KiCad CLI 10.0.6 can differ from Eeschema about this override; validate GUI and CLI versions separately rather than accepting CLI-only proof. Real KiCad 10 GUI/CLI integration remains **unverified** until run on a KiCad 10 installation.
+- Independent format evidence and safety boundary are in [ARCHITECTURE.md](ARCHITECTURE.md). Fixture structure tests must prove parent instance-path lookup, multi-root numbering, reused child file expansion and exact allowed byte changes. Include a fixture with a non-nil project-registered root UUID **different** from the document header UUID (as in KiCad upstream issue23403); assert acceptance and child paths keyed to the registered UUID. Include equality and explicit nil-registry-UUID fallback cases; reject absent/malformed registry UUIDs and duplicate effective root UUIDs, and verify neither identity is changed. KiCad CLI 10.0.6 can differ from Eeschema about this override; validate GUI and CLI versions separately rather than accepting CLI-only proof. The installed KiCad 10.0.8 qualification below supplies separate GUI and CLI evidence for these representative cases.
 
 
 ## Test environment setup authorization (2026-11-10)
@@ -49,3 +49,128 @@ Injected failures cover marker/backup creation and writing, corrupted backups be
 The user explicitly permits Codex to install reasonably necessary development/test packages in its isolated execution environment. For Python tests, use a virtual environment and install `pytest` from a trusted package index; installing official distribution `python3-venv` or official KiCad 10 tooling for actually needed integration validation is authorized when safe and supported. Do not alter an end user's host system or install unrelated packages. Runtime remains standard-library-only unless a separate architecture decision is approved.
 
 The setup authorization is distinct from test evidence; executed setup and checks are recorded above. Future receipts must state actual commands, versions where relevant, results, and skipped/unavailable integration tests. Refer to [AGENTS.md](../AGENTS.md) for the authoritative safety conditions.
+
+## Installed KiCad qualification (2026-11-11)
+
+**Disposition: FULL INTEGRATION QUALIFICATION for the three fixtures and environment below**, using the assigned task's definition: independent file checks plus actual KiCad 10 GUI inspection. This is evidence for independent review, not production readiness, a new compatibility promise, or permission for live customer use. No product implementation, runtime dependency, numbering policy, or architecture changed.
+
+### Source and installation evidence
+
+Preflight verified a clean `codex/read-only-numbering-engine` at reviewed commit `71b284bbb2129ee749ee46a73d4e4d283455203b`, with the expected `rasusmilch/Kicad_renumber_pages` origin. `git fetch origin`, an explicit feature-ref fetch, `git ls-remote --heads origin refs/heads/codex/read-only-numbering-engine refs/heads/main`, and `git merge --ff-only origin/codex/read-only-numbering-engine` succeeded; the latter reported already up to date. No source divergence or discarded work.
+
+Actual environment commands/results:
+
+| Command | Exit / relevant output |
+| --- | --- |
+| `cat /etc/os-release` | 0; Debian GNU/Linux 13, trixie, 13.6 |
+| `uname -m` | 0; x86_64 |
+| `.venv/bin/python --version` | 0; Python 3.12.14 |
+| `.venv/bin/python -m pytest --version` | 0; pytest 9.2.0, existing virtual environment reused |
+| `command -v kicad-cli` | 0; `/usr/bin/kicad-cli` |
+| `kicad-cli version` | 0; **9.0.2**, not KiCad 10 |
+| `command -v eeschema` | 0; `/usr/bin/eeschema`, system KiCad 9 |
+| `dpkg-query -W kicad` | 0; `9.0.2+dfsg-1` |
+| `apt-cache policy kicad` | 0; installed/candidate 9.0.2; unreadable `80-applied-apt-retries` warning |
+| `command -v apt-get`, `dpkg`, `docker` | 0; `/usr/local/bin/apt-get`, `/usr/bin/dpkg`, `/usr/local/bin/docker` |
+| `sh -c 'command -v <tool>'` for sudo, flatpak, snap, Xvfb, gpgv | 127 each; unavailable |
+| `findmnt -T /workspace -o TARGET,FSTYPE,SOURCE` | 0; local workspace overlay filesystem |
+| `ls -l /tmp/.X11-unix/X0` | 0; shared X11 display socket present |
+
+The shell initially had no `DISPLAY`, `WAYLAND_DISPLAY`, or `XAUTHORITY`. Native desktop controls supplied a usable X11 desktop; no virtual display installation was needed. Network access to official download/upstream hosts worked. Home configuration paths are read-only: bare version calls emitted configuration-directory errors but still returned versions/exit 0. Setting writable, isolated XDG paths removed those diagnostics. No system upgrade, privileged installation, repository change, or workstation modification was needed.
+
+The [official KiCad Linux download page](https://www.kicad.org/download/linux/) listed the 10.0.8 Lite AppImage. The native package candidate was only 9, so the official self-contained distribution was chosen. Executed download/extraction commands (all exit 0):
+
+```sh
+curl -fL https://www.kicad.org/download/linux/ -o /workspace/work/qualification/linux-download.html
+curl -fL https://kicad-downloads.s3.cern.ch/appimage/stable/kicad-10.0.8-x86_64-lite.AppImage.tar -o /workspace/work/qualification/kicad-10.0.8-x86_64-lite.AppImage.tar
+tar -xf /workspace/work/qualification/kicad-10.0.8-x86_64-lite.AppImage.tar -C /workspace/work/qualification/kicad10
+chmod u+x /workspace/work/qualification/kicad10/kicad-10.0.8-x86_64-lite.AppImage
+# In /workspace/work/qualification/kicad10:
+./kicad-10.0.8-x86_64-lite.AppImage --appimage-extract
+```
+
+Archive: 316,538,880 bytes; SHA-256 `abb59cee9f9782736c1b9a92e3ab08b31320ee01d72a6f9442a07fdef71b87d0`. MD5 `d7517ca69c07918885df87c311066150` matched the official mirror's object metadata. This records official HTTPS provenance and artifact identity; no detached signature verification was performed. Extraction bypassed FUSE and required no root. Lite omits 3D assets, irrelevant to these schematic checks.
+
+Subsequent commands used these isolated paths (the GUI used the same profile):
+
+```sh
+export XDG_CACHE_HOME=/workspace/work/qualification/xdg/cache
+export XDG_CONFIG_HOME=/workspace/work/qualification/xdg/config
+export XDG_DATA_HOME=/workspace/work/qualification/xdg/data
+KICAD10_APPRUN=/workspace/work/qualification/kicad10/squashfs-root/AppRun
+"$KICAD10_APPRUN" kicad-cli version
+```
+
+Actual executable output: **10.0.8**, exit 0. System KiCad 9 remained installed separately and supplied no integration pass.
+
+### Fixtures and independent expectations
+
+Public source: [official KiCad tag 10.0.6 issue23403](https://gitlab.com/kicad/code/kicad/-/tree/10.0.6/qa/data/eeschema/issue23403). Four files were downloaded from `https://gitlab.com/kicad/code/kicad/-/raw/10.0.6/qa/data/eeschema/issue23403/<filename>` into scratch space. Their Git blob SHA-1 identities are pinned and checked by `UPSTREAM_BLOBS` in [test_independent_qualification.py](../tests/test_independent_qualification.py). No upstream/customer project files or binaries were committed. Preview of the byte-authentic original reported 2 roots, 4 instances, already-correct pages 1–4, and changed nothing.
+
+The new tests import no engine, parser, candidate, or plan implementation. Explicit tables establish root identities, full UUID instance paths, source files, page-record owner files/slots, existing values, and expected pre-order **before** any utility invocation. A deliberately fixture-limited byte matcher checks the stored parent paths, changes only known quoted page tokens, and constructs complete independently expected file bytes. It is not a product parser or alternative numbering policy.
+
+| Fixture | Roots / instances | Independently fixed traversal, pages assigned consecutively |
+| --- | --- | --- |
+| Public issue23403 copy | 2 / 4 | 1 Root; 2 Root/shared1; 3 top_level_sheet_1; 4 top_level_sheet_1/shared1 |
+| Original forest | 2 / 9 | 1 Block 2; 2 Block 2/Channel 2; 3 its Empty 2; 4 Block 2/Channel 10; 5 its Empty 2; 6 Block 2/Empty 10; 7 Block 10; 8 Block 10/Channel 2; 9 its Empty 2 |
+| Original single-root nil fallback | 1 / 2 | 1 Single; 2 Single/Empty |
+
+Upstream effective roots: `da308afe-918c-407a-88a0-b7c2f2b6b630` and `ccc7e5dc-77b6-4792-b9b6-8eaa039374d5`; the second document UUID is `574f9438-bf45-4364-93f8-a7864ab0aeac`. Forest roots are `22222222-2222-4222-8222-222222222222` and `aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa`; the latter document UUID is `11111111-1111-4111-8111-111111111111`. The single-root registry explicitly stores nil and resolves to that `1111…` document UUID. Neither stored identity is rewritten. Every full descendant UUID path and its page owner are specified in the test tables.
+
+Forest registration stores Block 10 before Block 2, and physical child order is deliberately non-natural. Three instances reuse `shared.kicad_sch`, each with a repeated empty descendant, plus a direct empty child. Rectangle/table objects contain page- and sheet-looking text. Duplicated/gapped old values include 88, 22, 44, and 90. The upstream disposable copy changes only four old page values to 9, 40, 9, 90. Single uses 88 and 7. Unreferenced invalid schematic sentinels remain untouched. Page-bearing files: upstream's two roots; forest's two roots plus shared; single's root. Empty/shared leaf files carry no page records of their own.
+
+### Preview, apply, backups, and recovery
+
+Actual launcher subprocesses used `.venv/bin/python renumber_pages.py <disposable-project.kicad_pro>` and the same command with `--apply`. All successful preview/apply/no-op commands exited 0. Fixed expected order, full instance paths, old/new pages, and affected-file reports matched. Previews left complete directory/file/content/mode/mtime snapshots unchanged. Apply matched **complete independently constructed files**, protecting every non-page byte, all UUIDs, drawings, symbols/connectivity, project JSON, empty sources, and unrelated files. Exactly 2 upstream, 3 forest, and 1 single source files changed. Mode/mtime checks passed. Second applies created nothing and changed no bytes or mtimes anywhere in each tree.
+
+Persistent GUI-tested copies were under `/workspace/work/qualification/cases/`; pristine misnumbered copies under `before/`. Editors and manager projects were closed before apply; no locks were deleted to bypass checks. Each changed file had one complete original backup, the exact expected relative path, matching full bytes and independently computed SHA-256:
+
+| Fixture / timestamp directory | File | Original/backup SHA-256 |
+| --- | --- | --- |
+| upstream / `2026-11-11_00-54-17` | issue23403.kicad_sch | `a84ec4a13a60008a23ed23fed3819b161647b939dd7937aea57083cd5feb4aa9` |
+| upstream / same | top_level_sheet_1.kicad_sch | `82be20aca57f70b716d645a6edf62c2d4d8f7cee8c540bbb3539b41f1e0ba70b` |
+| forest / `2026-11-11_00-59-18` | forest.kicad_sch | `121af2382cad54540d8e97d52c382b8a53356d190f436959f26dfc9509e76abb` |
+| forest / same | top2.kicad_sch | `0d98d345cab5bb59d5dc538ea8461624699ff24f95555d04118874954a5c6821` |
+| forest / same | shared.kicad_sch | `2b9265f7affeb390986e4dc8f1dbc7a415282f9f754dc93c79159dd5cf122adb` |
+| single / `2026-11-11_01-00-45` | single.kicad_sch | `d1bac464ccd1bd5d82aaaa59901b7b8f8e5ea25d31b8026570117ee11863bd7d` |
+
+Recovery test: a subprocess performed one real `os.replace`, then `os._exit(73)` before the next replacement. The marker and all original backups survived; independent digests classified one target expected-new, two original, zero unknown. Another actual `--apply` returned 5 with the entire partial tree unchanged. A separate simulated external edit exercised unknown-digest classification and another unchanged exit-5 refusal. Unknown bytes and the marker were copied to audit files before manual restoration. Verified backups restored every original input byte/digest; read-only preview succeeded while the marker still existed. Only after restoration verification was the disposable marker explicitly cleared; backups and audit evidence remained. This follows the documented manual procedure, without claiming physical power-loss durability or automatic recovery from arbitrary third-party edits.
+
+### Actual CLI and GUI evidence
+
+Verified supported syntax with `"$KICAD10_APPRUN" kicad-cli sch export netlist --help <fixture.kicad_sch>` (0). Actual before/after commands used:
+
+```sh
+"$KICAD10_APPRUN" kicad-cli sch export netlist --format kicadxml --output /workspace/work/qualification/exports/before/forest.xml /workspace/work/qualification/cases/forest/forest.kicad_sch
+"$KICAD10_APPRUN" kicad-cli sch export netlist --format kicadxml --output /workspace/work/qualification/exports/after/forest.xml /workspace/work/qualification/cases/forest/forest.kicad_sch
+```
+
+The same commands ran for `single/single.kicad_sch` and `upstream/issue23403.kicad_sch`, with corresponding output names. All six exports exited 0 and included 9, 2, and 4 sheet entries respectively. Independent XML comparison retains component/reference multiplicity, values, libraries, properties, instance sheet paths, and UUIDs; compares complete component/libpart/library sections as sorted trees; and compares net names plus all nodes/properties, ignoring only net numeric export codes. Design timestamps, source locations, and exported sheet-number metadata are excluded from electrical equivalence. Single-root XML intentionally omits the root display-name prefix. All comparisons matched. Upstream contains two exported capacitor instances and four nets; synthetic fixtures have no electrical components, so their netlist checks are limited structural corroboration.
+
+Upstream exports warn `schematic has annotation errors, please use the schematic editor to fix them` both before and after. Both exported references are C1; the public source has only one stored symbol-instance annotation entry. This pre-existing annotation limitation was not repaired or counted as a clean ERC result. CLI can create/update `.kicad_prl` session sidecars; integration tests permit that KiCad-owned side effect while protecting project/schematic inputs. Utility preview/no-op checks still require a completely unchanged tree. No CLI-only conclusion about effective root UUID correctness was used, and CLI 10.0.6 itself was not installed or requalified.
+
+For GUI inspection, the official AppRun opened each disposable `.kicad_pro` in KiCad Manager and launched its Schematic Editor. The isolated first-run profile started without external libraries (the public fixture embeds its capacitor symbol). Accelerated rendering produced stale/black canvas regions; selecting **Fallback Graphics** in the isolated profile made the actual sheets/title blocks visibly inspectable. Screenshots, hierarchy labels, and editor captions were observed through native desktop controls, not inferred from process existence or exit status.
+
+Every top-level and descendant instance was opened by hierarchy navigation both before and after renumbering: all 4 upstream, 9 forest, and 2 single instances. Reused-file editor captions distinguished their parent paths. Post-apply hierarchy labels showed precisely pages 1–4, 1–9, and 1–2 from the independent tables; visible title blocks and rectangle/table rendering corroborated the selected sheets. No missing/unexpected duplicate sheet instance or post-apply load/compatibility repair warning appeared. Forest's hierarchy navigator retained registry order (Block 10 first) while its page labels correctly showed Block 10 as 7–9 and Block 2 as 1–6; the utility deliberately does not reorder project metadata.
+
+Deliberately duplicated baseline pages caused KiCad to announce automatic in-memory page repairs on upstream/forest before apply (dirty editor titles); those changes were discarded without saving. Single loaded its baseline 88/7 without a repair notice. All post-apply editor titles were clean, with no repair notice. Closing the baseline GUI normalized some `.kicad_pro` defaults (ERC severity, empty netclass maps, and last export path settings), and created session/history files. These were KiCad's own actions, outside the utility. Apply's independent comparison used the immediate post-close input baseline and left that project byte-identical; separate fresh-fixture tests also prove original project JSON is preserved. Final post-GUI schematic bytes equal the independently expected page-only outputs and retain format 20260306/generator_version 10.0. No schematic save, format conversion, or customer project mutation was performed.
+
+Preserved original mtimes did not prevent correct closed-project reopening on this local overlay filesystem: the same paths reopened with the new page numbers and protected content. This does not establish open-editor change detection (apply requires closure), Windows, network share semantics, or universal metadata preservation. No concrete evidence justified changing the approved metadata policy.
+
+### Reproduction and remaining limits
+
+The optional public test takes a directory containing the four authentic upstream files; the optional CLI test additionally takes the official extracted AppRun path. Tests perform no download/install themselves. Without those environment variables, the public-source and installed-CLI tests explicitly skip; the synthetic file/recovery tests still run. GUI inspection is manual evidence and is not automated by this test module.
+
+Executed complete checks (exit 0; actual final receipt records publication):
+
+```sh
+KICAD_ISSUE23403_FIXTURE=/workspace/work/qualification/upstream/issue23403 KICAD10_APPRUN=/workspace/work/qualification/kicad10/squashfs-root/AppRun .venv/bin/python -m pytest -q
+KICAD_ISSUE23403_FIXTURE=/workspace/work/qualification/upstream/issue23403 KICAD10_APPRUN=/workspace/work/qualification/kicad10/squashfs-root/AppRun .venv/bin/python -m unittest discover -q
+.venv/bin/python -m compileall .
+git diff --check
+git status --short
+```
+
+Pytest: **107 passed, 50 subtests passed**, no skips with both qualification variables supplied. Unittest: **107 tests, OK**. Previous baseline: 102 passing tests; five independent qualification tests added. Early integration-test assertions were corrected to account for KiCad-created session sidecars and single-root XML naming; neither was a product implementation defect.
+
+No material implementation defect or architecture contradiction was found in these cases. Remaining limits: Python 3.11, Windows, native Kubuntu, network filesystems, hot reload, larger electrically populated projects, and physical power-loss behavior are unverified. No ERC-clean, comprehensive KiCad-version, production-readiness, or live-customer-use claim follows. Recommended next action: independent ChatGPT review of this qualification evidence and its stated limits.
