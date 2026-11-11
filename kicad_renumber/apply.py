@@ -13,6 +13,7 @@ import os
 from pathlib import Path
 import shutil
 import stat
+import sys
 import tempfile
 
 from . import engine
@@ -112,7 +113,15 @@ def _sync_directory(directory: Path) -> None:
             os.close(descriptor)
     except OSError as exc:
         if exc.errno not in {errno.EINVAL, errno.ENOTSUP, errno.ENOSYS}:
-            raise
+            raise OSError(exc.errno, f"directory synchronization failed: {directory}: {exc}") from exc
+
+
+def _sync_file(handle, path: Path, stage: str) -> None:
+    try:
+        handle.flush()
+        os.fsync(handle.fileno())
+    except OSError as exc:
+        raise OSError(exc.errno, f"file synchronization failed during {stage}: {path}: {exc}") from exc
 
 
 def _write(handle, data: bytes) -> None:
@@ -120,6 +129,13 @@ def _write(handle, data: bytes) -> None:
         raise OSError("short file write")
     handle.flush()
     os.fsync(handle.fileno())
+
+
+def _write_prepared(handle, data: bytes, path: Path, stage: str) -> None:
+    try:
+        _write(handle, data)
+    except OSError as exc:
+        raise OSError(exc.errno, f"data write/flush/synchronization failed during {stage}: {path}: {exc}") from exc
 
 
 def _exclusive_file(path: Path):
@@ -164,14 +180,28 @@ def _backup_directory(root: Path) -> Path:
 
 
 def _metadata(source: Path, target: Path, snapshot: Snapshot) -> None:
-    shutil.copystat(source, target, follow_symlinks=False)
-    current = target.stat()
-    if stat.S_IMODE(current.st_mode) != stat.S_IMODE(snapshot.identity[2]):
-        raise InvalidProject(f"permission/mtime preservation failed (st_mode): {target}")
-    if current.st_mtime_ns != snapshot.identity[5]:
-        raise InvalidProject(f"permission/mtime preservation failed (st_mtime_ns): {target}")
-    with target.open("rb") as handle:
-        os.fsync(handle.fileno())
+    # Acquire write access to this new destination BEFORE copystat can mark it
+    # read-only. Windows _commit needs a writable descriptor. Never open the
+    # original source for writing, truncate the destination, or ignore EBADF.
+    try:
+        with target.open("r+b") as handle:
+            shutil.copystat(source, target, follow_symlinks=False)
+            _verify_metadata(engine._read(target), snapshot)
+            _sync_file(handle, target, "metadata preservation")
+        _verify_metadata(engine._read(target), snapshot)  # Also check after writable handle close.
+    except OSError as exc:
+        raise OSError(exc.errno, f"metadata preparation failed: {target}: {exc}") from exc
+
+
+def _unlink_temporary(path: Path) -> None:
+    # Only newly created staging files reach here. Returned stages are byte-
+    # verified by callers before cleanup; never clear a source/backup attribute.
+    if sys.platform == "win32" and _present(path):
+        # Do not follow a substituted symlink or chmod an aliased source.
+        mode = engine._read(path).identity[2]
+        if not mode & stat.S_IWRITE:
+            path.chmod(stat.S_IMODE(mode) | stat.S_IWRITE)
+    path.unlink(missing_ok=True)
 
 
 def _verify_metadata(current: Snapshot, original: Snapshot) -> None:
@@ -186,9 +216,9 @@ def _backup(snapshot: Snapshot, destination: Path) -> None:
     destination.parent.mkdir(parents=True, exist_ok=True)
     engine._check_components(destination.parent)
     with _exclusive_file(destination) as handle:
-        _write(handle, snapshot.data)
+        _write_prepared(handle, snapshot.data, destination, "backup preparation")
     _metadata(snapshot.path, destination, snapshot)
-    _verify_bytes(destination, snapshot.data)
+    _verify_metadata(_verify_bytes(destination, snapshot.data), snapshot)
     _sync_directory(destination.parent)
 
 
@@ -199,12 +229,16 @@ def _stage(snapshot: Snapshot, data: bytes, metadata_source: Path | None = None)
     path = Path(name)
     try:
         with os.fdopen(descriptor, "wb") as handle:
-            _write(handle, data)
+            _write_prepared(handle, data, path, "staged candidate preparation")
         _metadata(metadata_source or snapshot.path, path, snapshot)
-        _verify_bytes(path, data)
+        _verify_metadata(_verify_bytes(path, data), snapshot)
         return path
-    except Exception:
-        path.unlink(missing_ok=True)
+    except Exception as exc:
+        try:
+            _unlink_temporary(path)
+        except Exception as cleanup_error:
+            raise ApplyFailure(f"staging preparation failed: {path}: {exc}; "
+                               f"temporary cleanup failed: {cleanup_error}", incomplete=True) from exc
         raise
 
 
@@ -233,7 +267,7 @@ def _cleanup(staged: dict[Path, Path], candidates: dict[Path, bytes]) -> list[st
         try:
             if _present(path):
                 _verify_bytes(path, candidates[original])
-            path.unlink(missing_ok=True)
+            _unlink_temporary(path)
         except Exception as exc:
             failures.append(f"temporary-file cleanup failed ({path}): {exc}")
     return failures
@@ -273,7 +307,7 @@ def _rollback(plan: NumberingPlan, candidates: dict[Path, bytes], attempted: lis
                 try:
                     if _present(temporary):
                         _verify_bytes(temporary, originals[path].data)
-                    temporary.unlink(missing_ok=True)
+                    _unlink_temporary(temporary)
                 except Exception as exc:
                     failures.append(f"rollback staging cleanup failed: {exc}")
     try:
@@ -297,6 +331,11 @@ def apply_project(project_path: str | Path) -> ApplyResult:
     _check_operation(project)
     if not plan.edits:
         return ApplyResult(plan, None)  # No mkdir, marker, staging, or backup on no-op.
+    if sys.platform == "win32":
+        for snapshot in plan.snapshots:
+            if snapshot.path in plan.affected_files and not snapshot.identity[2] & stat.S_IWRITE:
+                raise InvalidProject(f"Windows read-only source cannot be replaced safely: {snapshot.path}; "
+                                     "apply refused before preparation; source attributes were not changed")
     candidates = dict(engine.candidate_bytes(plan))
     if set(candidates) != set(plan.affected_files) or project in candidates:
         raise InvalidProject("candidate change set does not match approved page plan")
@@ -318,7 +357,7 @@ def apply_project(project_path: str | Path) -> ApplyResult:
         # Acquire exclusion before backup/staging work. Partial writes also block
         # later applies; no other process may infer that an empty marker is safe.
         with _exclusive_file(marker) as handle:
-            _write(handle, payload)
+            _write_prepared(handle, payload, marker, "operation marker preparation")
         owned = _verify_bytes(marker, payload)
         _sync_directory(root)
     except Exception as exc:
@@ -375,6 +414,8 @@ def apply_project(project_path: str | Path) -> ApplyResult:
     except Exception as exc:
         failures = _rollback(plan, candidates, attempted, backup)
         failures.extend(_cleanup(staged, candidates))
+        if isinstance(exc, ApplyFailure) and exc.incomplete:
+            failures.append("preparation left unresolved temporary-file evidence")
         if not failures:
             try:
                 _owned_marker(marker, owned)

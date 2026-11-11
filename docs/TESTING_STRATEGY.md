@@ -38,6 +38,47 @@ Injected failures cover marker/backup creation and writing, corrupted backups be
 
 **Unverified:** Python 3.11 execution, Windows, native Kubuntu, network filesystems, broad design coverage, physical power-loss durability, and hot reload with an open editor. Installed KiCad 10.0.8 results are scoped below; KiCad 9 and CLI success alone cannot establish full KiCad 10 GUI compatibility.
 
+## Writable-descriptor synchronization correction (2026-11-11)
+
+**Status: implemented and Linux-tested; native Windows resolution NOT VERIFIED.** Preflight fetched the existing feature branch and confirmed clean local/remote `dee6d636ea656dd871f9c8666581db72364e33ed`, with no divergence or discarded work. No customer project was accessed or recovered.
+
+Descriptor audit found three synchronization paths: `_write()` flushes and fsyncs writable `wb` descriptors; POSIX directory sync uses `O_RDONLY|O_DIRECTORY` (skipped on Windows); old `_metadata()` reopened its destination as `rb` after copying metadata and fsynced that read-only regular-file descriptor. A deterministic `_commit` model using actual temporary files reproduced EBADF in the **first backup's metadata preparation**, before staging or any original replacement. This establishes the suspected source path under injection, not the exact stage of the user's native Windows incident.
+
+The correction retains data write → flush → fsync → close. It then opens the **prepared destination** as non-truncating `r+b` before copying source permissions with `copystat`, verifies mode/mtime, flushes/fsyncs that writable descriptor, closes, and checks metadata/content/digest again. The writable descriptor is acquired before a copied read-only attribute can block opening it. Originals remain read-only inputs to verification. All backups are completed and verified, then the full backup set is reread after staging and before the first replacement. Existing locks, identities, hashes, operation marker, per-file checks, and conservative rollback remain in use.
+
+On Windows, changed read-only schematic sources are explicitly refused **before preparation**; the utility does not clear an original's attribute to permit replacement. Read-only project/unchanged-source reads, preview, and no-op remain allowed. POSIX read-only sources can still be replaced when directory permissions permit, with their mode/mtime preserved. Cleanup can clear read-only only on tool-created staging files, after regular/unaliased-file checks and expected-byte verification for returned stages. Failed staging cleanup retains its marker and diagnostic evidence rather than reporting complete recovery. Backups and original attributes are not relaxed for cleanup.
+
+File sync errors, including EBADF, propagate with operation, path, and stage; no file synchronization is skipped or downgraded to a read-only descriptor. The existing supported-filesystem directory policy is unchanged: Windows has no portable directory fsync; POSIX EINVAL/ENOTSUP/ENOSYS indicate unavailable directory synchronization, while other directory errors propagate with path context. This is not a new power-loss durability claim.
+
+`tests/test_sync.py` adds **18 tests**: 16 runnable here and two native-Windows-only. A portable handle-tracking fault injector rejects read-only descriptors while forwarding valid fsync calls to the actual filesystem. Coverage includes:
+
+- Prior-policy EBADF reproduction in backup metadata; corrected backup/stage writable modes and data-before-metadata sync ordering.
+- Complete original backups, relative paths and SHA-256 checked at the first replacement barrier; verification failures block replacement.
+- Read-only source backup/stage preparation, preserved mode/mtime, no source write-open, conservative Windows refusal, and true no-op behavior.
+- Actual POSIX replacement of read-only files, and symlink/hardlink refusal before temporary cleanup can change source attributes.
+- Marker/backup/stage data-sync failures and backup/stage metadata-sync failures, with path/stage diagnostics and no original replacement.
+- Real later replacements followed by complete rollback; rollback sync failure and staging-cleanup failure retain markers/backups.
+- Successful apply followed by a complete tree/mtime no-op. Native tests cover actual Windows apply/no-op and copied read-only metadata synchronization; they are skipped here.
+
+Environment: Linux x86_64, Python 3.12.14, existing pytest 9.2.0 virtual environment; no dependency installation. `python.exe`, `powershell`, `pwsh`, and `wine` are unavailable. No native Windows execution environment is present. Injected Windows `_commit` behavior and Windows policy branches run on Linux filesystem operations, and are not native Windows compatibility evidence.
+
+Executed commands, all exit 0:
+
+```sh
+.venv/bin/python -m pytest -q
+.venv/bin/python -m unittest discover -q
+KICAD_ISSUE23403_FIXTURE=/workspace/work/qualification/upstream/issue23403 KICAD10_APPRUN=/workspace/work/qualification/kicad10/squashfs-root/AppRun .venv/bin/python -m pytest -q
+.venv/bin/python -m compileall .
+git diff --check
+git status --short
+```
+
+Default pytest: **135 passed, 5 skipped, 74 subtests passed**. Unittest: **140 tests, OK (skipped=5)**. With the existing authentic public fixture and official KiCad 10.0.8 AppRun supplied, pytest: **137 passed, 3 skipped, 77 subtests passed**. The three remaining skips are native Windows tests (one identity test plus two new synchronization tests); default execution additionally skips the two opt-in public-fixture/installed-CLI tests. Existing backup, rollback, interruption, source-identity/content, numbering, and independent byte-preservation coverage passes.
+
+Additional actual launcher commands on a disposable temporary project used `.venv/bin/python renumber_pages.py <disposable.kicad_pro>`, then the same command with `--apply` twice: all exit 0. Preview left the tree unchanged, the saved backup bytes/SHA-256 matched the original, final numbering was correct, and the second apply left the complete tree and mtimes unchanged. Earlier KiCad GUI qualification is historical evidence; GUI inspection was not repeated for this repair.
+
+Remaining limits: native Windows `_commit`, read-only-attribute behavior, replacement and cleanup semantics, NTFS/ReFS/network filesystems, Python 3.11, and physical power-loss durability remain unverified. The narrower descriptor defect is corrected in source and passes the modeled failure, but the user's Windows failure must not be declared resolved before native execution. Next validation: native Windows preview/apply/no-op on a disposable representative project, with synchronization-stage diagnostics and verified backups.
+
 ## Windows source-identity correction (2026-11-11)
 
 The reported Windows diagnostic established a ctime-only discrepancy: path-based `lstat` values before/after a read agreed, but stable handle-based `fstat` ctime differed. The previous implementation compared all seven fields unconditionally and rejected this unchanged file while opening. Per the explicit user/ChatGPT correction, `_identity()` now substitutes zero for `st_ctime_ns` on `sys.platform == "win32"`. Python documents [Windows ctime deprecation](https://docs.python.org/3/library/os.html#os.stat_result.st_ctime_ns); ctime is not used as a Windows integrity signal. POSIX keeps its actual ctime.
