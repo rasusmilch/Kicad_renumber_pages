@@ -140,14 +140,14 @@ def _verify_sources(plan: NumberingPlan, installed: dict[Path, Snapshot]) -> Non
     for original in plan.snapshots:
         expected = installed.get(original.path, original)
         current = _verify_bytes(original.path, expected.data)
-        if current.identity != expected.identity:
-            raise InvalidProject(f"source identity or metadata changed: {original.path}")
+        engine._verify_identity(expected.identity, current.identity, path=original.path,
+                                stage="source identity or metadata changed during apply source verification")
 
 
 def _owned_marker(marker: Path, owned: Snapshot) -> None:
     current = _verify_bytes(marker, owned.data)
-    if current.identity != owned.identity:
-        raise InvalidProject("operation marker identity changed; retaining recovery evidence")
+    engine._verify_identity(owned.identity, current.identity, path=marker,
+                            stage="operation marker identity changed; retaining recovery evidence")
 
 
 def _backup_directory(root: Path) -> Path:
@@ -166,17 +166,19 @@ def _backup_directory(root: Path) -> Path:
 def _metadata(source: Path, target: Path, snapshot: Snapshot) -> None:
     shutil.copystat(source, target, follow_symlinks=False)
     current = target.stat()
-    if (stat.S_IMODE(current.st_mode) != stat.S_IMODE(snapshot.identity[2])
-            or current.st_mtime_ns != snapshot.identity[5]):
-        raise InvalidProject(f"permission/mtime preservation failed: {target}")
+    if stat.S_IMODE(current.st_mode) != stat.S_IMODE(snapshot.identity[2]):
+        raise InvalidProject(f"permission/mtime preservation failed (st_mode): {target}")
+    if current.st_mtime_ns != snapshot.identity[5]:
+        raise InvalidProject(f"permission/mtime preservation failed (st_mtime_ns): {target}")
     with target.open("rb") as handle:
         os.fsync(handle.fileno())
 
 
 def _verify_metadata(current: Snapshot, original: Snapshot) -> None:
-    if (stat.S_IMODE(current.identity[2]) != stat.S_IMODE(original.identity[2])
-            or current.identity[5] != original.identity[5]):
-        raise InvalidProject(f"source permissions or mtime changed: {current.path}")
+    if stat.S_IMODE(current.identity[2]) != stat.S_IMODE(original.identity[2]):
+        raise InvalidProject(f"source permissions or mtime changed during metadata verification (st_mode): {current.path}")
+    if current.identity[5] != original.identity[5]:
+        raise InvalidProject(f"source permissions or mtime changed during metadata verification (st_mtime_ns): {current.path}")
 
 
 def _backup(snapshot: Snapshot, destination: Path) -> None:
@@ -258,8 +260,8 @@ def _rollback(plan: NumberingPlan, candidates: dict[Path, bytes], attempted: lis
             temporary = _stage(snapshot, snapshot.data, saved)
             # Staging is not exclusion: recheck again immediately before restore.
             latest = _verify_bytes(path, candidates[path])
-            if latest.identity != current.identity:
-                raise InvalidProject(f"source changed during rollback: {path}")
+            engine._verify_identity(current.identity, latest.identity, path=path,
+                                    stage="source changed during rollback")
             _replace(temporary, path)
             restored[path] = _verify_bytes(path, snapshot.data)
             _verify_metadata(restored[path], snapshot)
@@ -353,8 +355,8 @@ def apply_project(project_path: str | Path) -> ApplyResult:
             prepared = _verify_bytes(staged[path], candidates[path])
             _verify_metadata(prepared, originals[path])
             current = _verify_bytes(path, originals[path].data)
-            if current.identity != originals[path].identity:
-                raise InvalidProject(f"source changed immediately before replacement: {path}")
+            engine._verify_identity(originals[path].identity, current.identity, path=path,
+                                    stage="source changed immediately before replacement")
             attempted.append(path)  # Covers a replace that succeeds then raises/fails verification.
             _replace(staged[path], path)
             installed[path] = _verify_bytes(path, candidates[path])

@@ -11,6 +11,7 @@ import os
 from pathlib import Path, PureWindowsPath
 import re
 import stat
+import sys
 from uuid import UUID
 
 from .sexpr import Atom, Expr, InvalidProject, atom, children, only, parse, scalar
@@ -21,7 +22,7 @@ class Snapshot:
     path: Path
     data: bytes
     digest: str
-    identity: tuple[int, ...]
+    identity: tuple[int, ...]  # _IDENTITY_FIELDS order; Windows ctime slot is always zero.
 
 
 @dataclass(frozen=True)
@@ -116,9 +117,22 @@ def natural_key(name: str, identity: tuple[str, ...]) -> tuple:
     return chunks, name, identity
 
 
+_IDENTITY_FIELDS = ("st_dev", "st_ino", "st_mode", "st_nlink", "st_size", "st_mtime_ns", "st_ctime_ns")
+
+
 def _identity(info: os.stat_result) -> tuple[int, ...]:
+    # Windows path/handle ctime can disagree for the same unchanged file.
+    # Keep the tuple offsets used by apply; retain POSIX change-time protection.
     return (info.st_dev, info.st_ino, info.st_mode, info.st_nlink,
-            info.st_size, info.st_mtime_ns, info.st_ctime_ns)
+            info.st_size, info.st_mtime_ns, 0 if sys.platform == "win32" else info.st_ctime_ns)
+
+
+def _verify_identity(expected: tuple[int, ...], current: tuple[int, ...], *,
+                     path: Path, stage: str) -> None:
+    if current != expected:
+        differences = ", ".join(f"{name} ({old} -> {new})" for name, old, new in
+                                zip(_IDENTITY_FIELDS, expected, current) if old != new)
+        raise InvalidProject(f"{stage}: {path}; differing identity fields: {differences}")
 
 
 def _check_components(path: Path) -> None:
@@ -137,13 +151,13 @@ def _read(path: Path) -> Snapshot:
             raise InvalidProject(f"expected an unaliased regular file: {path}")
         with path.open("rb") as handle:
             opened = handle.fileno()
-            if _identity(os.fstat(opened)) != _identity(before):
-                raise InvalidProject(f"source changed while opening: {path}")
+            _verify_identity(_identity(before), _identity(os.fstat(opened)), path=path,
+                             stage="source changed while opening")
             data = handle.read()
-            if _identity(os.fstat(opened)) != _identity(before):
-                raise InvalidProject(f"source changed while reading: {path}")
-        if _identity(path.lstat()) != _identity(before):
-            raise InvalidProject(f"source replaced while reading: {path}")
+            _verify_identity(_identity(before), _identity(os.fstat(opened)), path=path,
+                             stage="source changed while reading")
+        _verify_identity(_identity(before), _identity(path.lstat()), path=path,
+                         stage="source replaced while reading (post-close path check)")
         return Snapshot(path, data, hashlib.sha256(data).hexdigest(), _identity(before))
     except OSError as exc:
         raise InvalidProject(f"cannot read {path}: {exc.strerror}") from exc
@@ -418,6 +432,8 @@ def build_plan(project_path: str | Path) -> NumberingPlan:
         raise InvalidProject("candidate instance graph or numbering verification failed")
     for snapshot in plan.snapshots:
         current = _read(snapshot.path)
-        if current.identity != snapshot.identity or current.data != snapshot.data:
-            raise InvalidProject(f"source changed during analysis: {snapshot.path}")
+        _verify_identity(snapshot.identity, current.identity, path=snapshot.path,
+                         stage="source changed during analysis")
+        if current.data != snapshot.data:
+            raise InvalidProject(f"source changed during analysis: {snapshot.path}; content bytes differ")
     return plan

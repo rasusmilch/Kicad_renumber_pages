@@ -64,6 +64,8 @@ On a detected failure, forward replacements stop. Rollback rereads verified back
 
 File data is flushed/synced; directories are synced on platforms/filesystems supporting it. Mode bits and mtime are preserved and checked; `copystat` also preserves other ordinary metadata where supported. Ownership, ACLs, platform flags, and all extended attributes are not universally guaranteed. Windows and network filesystems remain unvalidated. Per-file replacement is **not** an atomic multi-file transaction. Hash/identity rechecks do not exclude a noncooperating writer racing the final check. Process death/power loss can leave a partial file set, temporary files, or a stale marker, even after a reported success; no universal crash durability is claimed.
 
+Source identity checks retain device, inode/file ID, mode, link count, size, and nanosecond mtime. On Windows only, deprecated `st_ctime_ns` is excluded because path-based `lstat` and handle-based `fstat` can disagree for an unchanged file; POSIX retains ctime checks. Repeated reads, content/digest checks, backup verification, and rollback guards remain in place. Metadata mismatch diagnostics name the differing fields and verification stage. Regression coverage simulates Windows stat results on real Linux temporary files; this correction has not yet been executed on native Windows.
+
 ## Manual recovery after interruption
 
 1. Close KiCad and stop all writers. Preserve a separate copy of the entire affected project, marker, and backups. Do not clear a marker merely because numbering looks correct or preview succeeds.

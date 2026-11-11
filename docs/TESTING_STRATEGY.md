@@ -38,6 +38,37 @@ Injected failures cover marker/backup creation and writing, corrupted backups be
 
 **Unverified:** Python 3.11 execution, Windows, native Kubuntu, network filesystems, broad design coverage, physical power-loss durability, and hot reload with an open editor. Installed KiCad 10.0.8 results are scoped below; KiCad 9 and CLI success alone cannot establish full KiCad 10 GUI compatibility.
 
+## Windows source-identity correction (2026-11-11)
+
+The reported Windows diagnostic established a ctime-only discrepancy: path-based `lstat` values before/after a read agreed, but stable handle-based `fstat` ctime differed. The previous implementation compared all seven fields unconditionally and rejected this unchanged file while opening. Per the explicit user/ChatGPT correction, `_identity()` now substitutes zero for `st_ctime_ns` on `sys.platform == "win32"`. Python documents [Windows ctime deprecation](https://docs.python.org/3/library/os.html#os.stat_result.st_ctime_ns); ctime is not used as a Windows integrity signal. POSIX keeps its actual ctime.
+
+The tuple remains `(st_dev, st_ino, st_mode, st_nlink, st_size, st_mtime_ns, ctime_slot)`. All consumers were inspected: read-open/read-complete/post-close checks, final analysis snapshots, apply source verification, marker ownership, immediate replacement and rollback rechecks, physical device/inode uniqueness, and permission/mtime preservation. Physical identity stays at indices 0–1, mode at 2, and mtime at 5. No tuple comparison consumer drops any additional field. A shared equality verifier now reports differing field names/values and verification stage. Permission/mtime failures also identify the field. Content/digest, backup, alias, lock, and rollback protections are unchanged.
+
+`tests/test_source_identity.py` adds 15 tests (14 executable here, one native-Windows-only), including deterministic injected stat records and actual temporary files:
+
+- Stable path/handle ctime disagreement accepted on the Windows policy, including changed path ctime across snapshot rechecks; contents and SHA-256 retained.
+- Every retained field independently rejected at open and apply snapshot verification; reading-stage diagnostics include multiple differing fields.
+- Actual size and mtime changes, and an actual same-content/same-mtime file replacement detected at the post-close path check.
+- Same-size content edits with mtime restored detected by both final preview analysis and apply's content/digest guard.
+- POSIX ctime-only open rejection and a real POSIX chmod/restore detected through ctime even after permissions are restored.
+- Successful read-only CLI preview leaves the entire temporary project inventory unchanged; real apply/backup/no-op and failure-after-replacement/rollback run with injected Windows ctime mismatch.
+
+Execution host: Linux x86_64, Python 3.12.14, existing pytest 9.2.0 virtual environment. `python.exe`, `powershell`, `pwsh`, and `wine` were absent; no native Windows runner was available. The native test is explicitly skipped, not passed. Simulated Windows identity policy still uses Linux filesystem operations and does not establish Windows replacement/permission semantics, NTFS/ReFS/network-share compatibility, or Python 3.11 execution. No customer project or live-project apply was used. No dependencies were added.
+
+Executed checks, all exit 0:
+
+```sh
+.venv/bin/python -m pytest -q
+.venv/bin/python -m unittest discover -q
+KICAD_ISSUE23403_FIXTURE=/workspace/work/qualification/upstream/issue23403 KICAD10_APPRUN=/workspace/work/qualification/kicad10/squashfs-root/AppRun .venv/bin/python -m pytest -q
+KICAD_ISSUE23403_FIXTURE=/workspace/work/qualification/upstream/issue23403 KICAD10_APPRUN=/workspace/work/qualification/kicad10/squashfs-root/AppRun .venv/bin/python -m unittest discover -q
+.venv/bin/python -m compileall .
+git diff --check
+git status --short
+```
+
+Default pytest: **119 passed, 3 skipped, 67 subtests passed**. Unittest: **122 tests, OK (skipped=3)**. The default skips are native Windows plus the two opt-in upstream/installed-CLI checks. With the existing authentic upstream fixture and official KiCad 10.0.8 AppRun supplied, pytest reports **121 passed, 1 skipped, 70 subtests passed**, and unittest reports **122 tests, OK (skipped=1)**; only native Windows remains skipped. An additional disposable demonstration reproduced the ctime-only rejection using the previous comparison policy, accepted the same bytes with the corrected policy, and ran the actual launcher preview with exit 0 and an unchanged project inventory. Existing backup, rollback, source-change, alias, interruption, and independent byte-oracle tests pass. Installed CLI tests reran; earlier GUI evidence below is historical qualification, not a new GUI run for this repair. Recommended next validation: genuine Windows read-only preview with native lstat/fstat observations on a disposable representative project.
+
 ## Evidence gap and approved fixtures (2026-11-10)
 - Codex's planning environment had KiCad 9.0.2 and Python 3.12.14, with no KiCad 10 runner. KiCad 9 cannot validate KiCad 10 imports/exports.
 - ChatGPT independently inspected a current KiCad 10 hierarchical schematic project and upstream KiCad 10 documentation. Use the [KiCad upstream issue23403 regression fixture](https://gitlab.com/kicad/code/kicad/-/tree/10.0.6/qa/data/eeschema/issue23403) as public reference for multiple roots sharing a subsheet; build minimal original synthetic test fixtures locally, without copying proprietary customer material.
